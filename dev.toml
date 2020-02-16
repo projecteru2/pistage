@@ -1,0 +1,9 @@
+log_level = "debug"
+
+eru_addr = "127.0.0.1:5001"
+
+lambda_cpu = 1
+lambda_memory = 1073741824
+lambda_podname = "testpod"
+lambda_network = ""
+lambda_appname = "lambda"
