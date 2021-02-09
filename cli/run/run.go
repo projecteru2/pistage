@@ -40,6 +40,6 @@ func setup(filepaths []string) error {
 }
 
 // NewExecutor .
-func NewExecutor(c *cli.Context) executor.Executor {
+func NewExecutor(c *cli.Context) (executor.Executor, error) {
 	return executor.NewSimple()
 }

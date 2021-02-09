@@ -7,7 +7,6 @@ import (
 	"time"
 
 	coreclient "github.com/projecteru2/core/client"
-	corecluster "github.com/projecteru2/core/cluster"
 	pb "github.com/projecteru2/core/rpc/gen"
 	coretypes "github.com/projecteru2/core/types"
 
@@ -23,15 +22,20 @@ type Eru struct {
 }
 
 // NewEru .
-func NewEru() *Eru {
-	cc := coreclient.NewClient(
+func NewEru() (*Eru, error) {
+	cc, err := coreclient.NewClient(
+		context.Background(),
 		config.Conf.EruAddr,
 		coretypes.AuthConfig{
 			Username: config.Conf.EruUsername,
 			Password: config.Conf.EruPassword,
 		},
 	)
-	return &Eru{cli: cc.GetRPCClient()}
+	if err != nil {
+		return nil, err
+	}
+
+	return &Eru{cli: cc.GetRPCClient()}, nil
 }
 
 // GetContainerID queries container ID via combination of appname, entrypoint and labels.
@@ -41,12 +45,12 @@ func (e Eru) GetContainerID(ctx context.Context, app, entry string, labels []str
 
 // Execute .
 func (e Eru) Execute(ctx context.Context, eopts ExecuteOptions) (<-chan Message, error) {
-	exec, err := e.cli.ExecuteContainer(ctx)
+	exec, err := e.cli.ExecuteWorkload(ctx)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	if err := exec.Send(eopts.ExecuteContainerOptions); err != nil {
+	if err := exec.Send(eopts.ExecuteWorkloadOptions); err != nil {
 		return nil, errors.Trace(err)
 	}
 
@@ -75,22 +79,27 @@ func (e Eru) Lambda(ctx context.Context, lopts LambdaOptions) (string, <-chan Me
 			Command: lopts.Command,
 			Dir:     "/",
 		},
-		CpuQuota:     lopts.CPU,
-		CpuBind:      lopts.CPUBind,
-		Memory:       lopts.Memory,
-		Storage:      lopts.Storage,
-		Podname:      lopts.Podname,
-		Image:        lopts.Image,
-		Count:        1,
-		Env:          lopts.Env,
-		Dns:          lopts.DNS,
-		Volumes:      lopts.Volumes,
-		Networkmode:  lopts.Network,
-		User:         config.Conf.EruDeployUser,
-		Data:         lopts.Data,
-		IgnoreHook:   false,
-		DeployMethod: corecluster.DeployAuto,
-		Labels:       lopts.Labels,
+		ResourceOpts: &pb.ResourceOptions{
+			CpuQuotaRequest: lopts.CPU,
+			CpuQuotaLimit:   lopts.CPU,
+			CpuBind:         lopts.CPUBind,
+			MemoryRequest:   lopts.Memory,
+			MemoryLimit:     lopts.Memory,
+			StorageRequest:  lopts.Storage,
+			StorageLimit:    lopts.Storage,
+			VolumesRequest:  lopts.Volumes,
+			VolumesLimit:    lopts.Volumes,
+		},
+		Podname:        lopts.Podname,
+		Image:          lopts.Image,
+		Count:          1,
+		Env:            lopts.Env,
+		Dns:            lopts.DNS,
+		User:           config.Conf.EruDeployUser,
+		Data:           lopts.Data,
+		IgnoreHook:     false,
+		DeployStrategy: pb.DeployOptions_AUTO,
+		Labels:         lopts.Labels,
 	}
 
 	opts := &pb.RunAndWaitOptions{
@@ -213,7 +222,7 @@ func (e Eru) getContainerID(ctx context.Context, opts *pb.DeployOptions, exit ex
 }
 
 func (e Eru) doGetContainerID(ctx context.Context, dopts *pb.DeployOptions) (string, error) {
-	lopts := &pb.ListContainersOptions{
+	lopts := &pb.ListWorkloadsOptions{
 		Appname:    dopts.Name,
 		Entrypoint: dopts.Entrypoint.Name,
 		Labels:     dopts.Labels,
@@ -236,9 +245,9 @@ func (e Eru) doGetContainerID(ctx context.Context, dopts *pb.DeployOptions) (str
 	return conts[0].Id, nil
 }
 
-func (e Eru) listContainers(ctx context.Context, opts *pb.ListContainersOptions) ([]*pb.Container, error) {
-	conts := []*pb.Container{}
-	resp, err := e.cli.ListContainers(ctx, opts)
+func (e Eru) listContainers(ctx context.Context, opts *pb.ListWorkloadsOptions) ([]*pb.Workload, error) {
+	conts := []*pb.Workload{}
+	resp, err := e.cli.ListWorkloads(ctx, opts)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -265,12 +274,12 @@ func (e Eru) recv(recv receiver) Message {
 	case err != nil:
 		return Message{Error: err}
 	default:
-		return Message{ID: msg.ContainerId, Data: msg.Data}
+		return Message{ID: msg.WorkloadId, Data: msg.Data}
 	}
 }
 
 type receiver interface {
-	Recv() (*pb.AttachContainerMessage, error)
+	Recv() (*pb.AttachWorkloadMessage, error)
 }
 
 type exitCh struct {

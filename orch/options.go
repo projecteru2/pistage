@@ -10,17 +10,17 @@ import (
 
 // ExecuteOptions .
 type ExecuteOptions struct {
-	*pb.ExecuteContainerOptions
+	*pb.ExecuteWorkloadOptions
 }
 
 // NewExecuteOptions .
-func NewExecuteOptions(containerID, workdir string, commands, envs []string) ExecuteOptions {
+func NewExecuteOptions(workloadID, workdir string, commands, envs []string) ExecuteOptions {
 	return ExecuteOptions{
-		ExecuteContainerOptions: &pb.ExecuteContainerOptions{
-			ContainerId: containerID,
-			Commands:    commands,
-			Envs:        envs,
-			Workdir:     workdir,
+		ExecuteWorkloadOptions: &pb.ExecuteWorkloadOptions{
+			WorkloadId: workloadID,
+			Commands:   commands,
+			Envs:       envs,
+			Workdir:    workdir,
 		},
 	}
 }

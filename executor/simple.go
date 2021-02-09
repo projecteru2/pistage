@@ -15,11 +15,16 @@ type Simple struct {
 }
 
 // NewSimple .
-func NewSimple() *Simple {
-	return &Simple{
-		orch:  orch.NewEru(),
-		store: &localStore{},
+func NewSimple() (*Simple, error) {
+	eru, err := orch.NewEru()
+	if err != nil {
+		return nil, err
 	}
+
+	return &Simple{
+		orch:  eru,
+		store: &localStore{},
+	}, nil
 }
 
 // AsyncStart .
