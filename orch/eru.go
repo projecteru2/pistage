@@ -71,7 +71,7 @@ func (e Eru) Execute(ctx context.Context, eopts ExecuteOptions) (<-chan Message,
 }
 
 // Lambda .
-func (e Eru) Lambda(ctx context.Context, lopts LambdaOptions) (string, <-chan Message, error) {
+func (e Eru) Lambda(ctx context.Context, lopts LambdaOptions) (<-chan Message, error) {
 	dopts := &pb.DeployOptions{
 		Name: config.Conf.EruDeployName,
 		Entrypoint: &pb.EntrypointOptions{
@@ -108,22 +108,22 @@ func (e Eru) Lambda(ctx context.Context, lopts LambdaOptions) (string, <-chan Me
 		Async:         false,
 	}
 
-	id, noti, err := e.lambda(ctx, opts)
+	noti, err := e.lambda(ctx, opts)
 	if err != nil {
-		return "", nil, errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 
-	return id, noti, nil
+	return noti, nil
 }
 
-func (e Eru) lambda(ctx context.Context, opts *pb.RunAndWaitOptions) (string, <-chan Message, error) {
+func (e Eru) lambda(ctx context.Context, opts *pb.RunAndWaitOptions) (<-chan Message, error) {
 	lamb, err := e.cli.RunAndWait(ctx)
 	if err != nil {
-		return "", nil, errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 
 	if err := lamb.Send(opts); err != nil {
-		return "", nil, errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 
 	exit := newExitCh()
@@ -139,25 +139,45 @@ func (e Eru) lambda(ctx context.Context, opts *pb.RunAndWaitOptions) (string, <-
 		}
 	}()
 
-	id, err := e.getWorkloadID(ctx, opts.DeployOptions, exit)
-	if err != nil {
-		exit.close()
-		return "", nil, errors.Trace(err)
+	return noti, nil
+}
+
+// bufferMsgOrOutput append the new msg into buffer or send them out if buffer full
+func bufferMsgOrOutput(noti chan<- Message, buf []byte, bufLen int, msg *Message) int {
+	capacity := len(buf)
+	msgLen := len(msg.Data)
+	if msgLen < 1 {
+		return bufLen
 	}
 
-	return id, noti, nil
+	if msgLen+bufLen < capacity {
+		copy(buf[bufLen:], msg.Data)
+		return bufLen + msgLen
+	}
+
+	// full
+	noti <- Message{
+		ID:   msg.ID,
+		Data: buf[:bufLen],
+	}
+
+	noti <- Message{
+		ID:   msg.ID,
+		Data: msg.Data,
+	}
+
+	return 0
 }
 
 func (e Eru) notify(ctx context.Context, recv receiver, noti chan<- Message, exit exitCh) error {
 	buf := make([]byte, 1024)
-	next := 0
-	start := -8
+	bufLen := 0
 
 	for {
 		msg := e.recv(recv)
 		if msg.EOF || msg.Error != nil {
-			if next > 0 {
-				noti <- Message{Data: buf[:next]}
+			if bufLen > 0 {
+				noti <- Message{Data: buf[:bufLen]}
 			}
 
 			noti <- msg
@@ -173,27 +193,7 @@ func (e Eru) notify(ctx context.Context, recv receiver, noti chan<- Message, exi
 		default:
 		}
 
-		// TODO: process exitCode
-		if start < 0 {
-			start++
-			continue
-		}
-
-		switch n := next + len(msg.Data[start:]); {
-		case n == 1024:
-			copy(buf[next:], msg.Data[start:])
-			fallthrough
-
-		case n > 1024:
-			noti <- Message{Data: buf[:next]}
-			next = 0
-
-		default:
-			next += copy(buf[next:], msg.Data[start:])
-		}
-
-		// skips the first byte due to https://stackoverflow.com/questions/52774830/docker-exec-command-from-golang-api
-		start = 0
+		bufLen = bufferMsgOrOutput(noti, buf, bufLen, &msg)
 	}
 }
 

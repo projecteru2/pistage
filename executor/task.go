@@ -75,12 +75,10 @@ func (t *Task) lambda(ctx context.Context) error {
 	opts := orch.NewLambdaOptions(t.Action.GetImage().Name, prog, t.timeout())
 	opts.Labels["uuid"] = t.UUID
 
-	rid, noti, err := t.orch.Lambda(ctx, opts)
+	noti, err := t.orch.Lambda(ctx, opts)
 	if err != nil {
 		return errors.Trace(err)
 	}
-
-	t.ResourceID = rid
 	log.Debugf("run a lambda for <%s> in %s", prog, t.ResourceID)
 
 	if err := t.subscribe(ctx, noti); err != nil {
@@ -149,6 +147,9 @@ func (t *Task) doWait(ctx context.Context, noti <-chan orch.Message) error {
 		default:
 		}
 
+		if t.ResourceID == "" && msg.ID != "" {
+			t.ResourceID = msg.ID
+		}
 		switch {
 		case msg.Error != nil:
 			log.ErrorStack(msg.Error)
