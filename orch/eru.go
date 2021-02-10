@@ -38,8 +38,8 @@ func NewEru() (*Eru, error) {
 	return &Eru{cli: cc.GetRPCClient()}, nil
 }
 
-// GetContainerID queries container ID via combination of appname, entrypoint and labels.
-func (e Eru) GetContainerID(ctx context.Context, app, entry string, labels []string) (string, error) {
+// GetWorkloadID queries workload ID via combination of appname, entrypoint and labels.
+func (e Eru) GetWorkloadID(ctx context.Context, app, entry string, labels []string) (string, error) {
 	return "cid", nil
 }
 
@@ -139,7 +139,7 @@ func (e Eru) lambda(ctx context.Context, opts *pb.RunAndWaitOptions) (string, <-
 		}
 	}()
 
-	id, err := e.getContainerID(ctx, opts.DeployOptions, exit)
+	id, err := e.getWorkloadID(ctx, opts.DeployOptions, exit)
 	if err != nil {
 		exit.close()
 		return "", nil, errors.Trace(err)
@@ -197,14 +197,14 @@ func (e Eru) notify(ctx context.Context, recv receiver, noti chan<- Message, exi
 	}
 }
 
-func (e Eru) getContainerID(ctx context.Context, opts *pb.DeployOptions, exit exitCh) (string, error) {
+func (e Eru) getWorkloadID(ctx context.Context, opts *pb.DeployOptions, exit exitCh) (string, error) {
 	for i := 1; i <= 10; i = i % 10 {
-		id, err := e.doGetContainerID(ctx, opts)
+		id, err := e.doGetWorkloadID(ctx, opts)
 		if err == nil {
 			return id, nil
 		}
 
-		if !errors.Contain(err, errors.ErrNoSuchContainer) {
+		if !errors.Contain(err, errors.ErrNoSuchWorkload) {
 			return "", err
 		}
 
@@ -218,34 +218,34 @@ func (e Eru) getContainerID(ctx context.Context, opts *pb.DeployOptions, exit ex
 		}
 	}
 
-	return "", errors.Annotatef(errors.ErrInvalidValue, "cannot fetch container ID, as exitCh had been closed")
+	return "", errors.Annotatef(errors.ErrInvalidValue, "cannot fetch workload ID, as exitCh had been closed")
 }
 
-func (e Eru) doGetContainerID(ctx context.Context, dopts *pb.DeployOptions) (string, error) {
+func (e Eru) doGetWorkloadID(ctx context.Context, dopts *pb.DeployOptions) (string, error) {
 	lopts := &pb.ListWorkloadsOptions{
 		Appname:    dopts.Name,
 		Entrypoint: dopts.Entrypoint.Name,
 		Labels:     dopts.Labels,
 		Limit:      2,
 	}
-	conts, err := e.listContainers(ctx, lopts)
+	conts, err := e.listWorkloads(ctx, lopts)
 	if err != nil {
 		return "", errors.Trace(err)
 	}
 
 	switch {
 	case len(conts) < 1:
-		return "", errors.Annotatef(errors.ErrNoSuchContainer, "for %s/%s with labels %s",
+		return "", errors.Annotatef(errors.ErrNoSuchWorkload, "for %s/%s with labels %s",
 			lopts.Appname, lopts.Entrypoint, lopts.Labels)
 	case len(conts) > 1:
-		return "", errors.Annotatef(errors.ErrInvalidValue, "there are more than one container for %s/%s with labels %s",
+		return "", errors.Annotatef(errors.ErrInvalidValue, "there are more than one workload for %s/%s with labels %s",
 			lopts.Appname, lopts.Entrypoint, lopts.Labels)
 	}
 
 	return conts[0].Id, nil
 }
 
-func (e Eru) listContainers(ctx context.Context, opts *pb.ListWorkloadsOptions) ([]*pb.Workload, error) {
+func (e Eru) listWorkloads(ctx context.Context, opts *pb.ListWorkloadsOptions) ([]*pb.Workload, error) {
 	conts := []*pb.Workload{}
 	resp, err := e.cli.ListWorkloads(ctx, opts)
 	if err != nil {

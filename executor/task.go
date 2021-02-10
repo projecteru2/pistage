@@ -102,7 +102,7 @@ func (t *Task) execOnPrev(ctx context.Context) error {
 	}
 
 	t.ResourceID = rid
-	log.Debugf("exec: %s on prev container: %s", prog, t.ResourceID)
+	log.Debugf("exec: %s on prev workload: %s", prog, t.ResourceID)
 
 	opts := orch.NewExecuteOptions(t.ResourceID, "/", []string{prog}, []string{})
 	noti, err := t.orch.Execute(ctx, opts)

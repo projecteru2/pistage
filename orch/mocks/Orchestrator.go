@@ -37,8 +37,8 @@ func (_m *Orchestrator) Execute(_a0 context.Context, _a1 orch.ExecuteOptions) (<
 	return r0, r1
 }
 
-// GetContainerID provides a mock function with given fields: ctx, app, entry, labels
-func (_m *Orchestrator) GetContainerID(ctx context.Context, app string, entry string, labels []string) (string, error) {
+// GetWorkloadID provides a mock function with given fields: ctx, app, entry, labels
+func (_m *Orchestrator) GetWorkloadID(ctx context.Context, app string, entry string, labels []string) (string, error) {
 	ret := _m.Called(ctx, app, entry, labels)
 
 	var r0 string
