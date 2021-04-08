@@ -34,7 +34,12 @@ func execute(c *cli.Context) error {
 		return err
 	}
 
-	_, err = run.NewExecutor(c).SyncStart(context.Background(), complex)
+	executor, err := run.NewExecutor(c)
+	if err != nil {
+		return err
+	}
+
+	_, err = executor.SyncStart(context.Background(), complex)
 	return err
 }
 

@@ -26,9 +26,11 @@ Pistages 会启动独立且隔离的上下文环境作为任务执行的运行�
 
 由 .yaml 文件定义单个行为的具体实现，例如参考下面的定义：
 
-`name: Clone Repo`
-`image: alpine/git`
-`run: git clone git@github.com:projecteru2/pistages.git`
+```yaml
+name: Clone Repo
+image: alpine/git
+run: git clone git@github.com:projecteru2/pistages.git
+```
 
 上面三行就定义了一个简单的行为，该行为的 name 是 Clone Repo，定义并注册之后，别的任务就能通过 Clone Repo 这个 name 来引用该行为，而无须重复定义，以实现复用自定义行为的目的。
 
@@ -38,9 +40,11 @@ Pistages 会启动独立且隔离的上下文环境作为任务执行的运行�
 
 ### 任务文件
 
-`name: Clone Pistages`
-`image: alpine/git`
-`run: git clone git@github.com:projecteru2/pistages.git`
+```yaml
+name: Clone Pistages
+image: alpine/git
+run: git clone git@github.com:projecteru2/pistages.git
+```
 
 可以看到，上面三行任务文件的内容和之前定义的行为文件的内容是完全一样的，也就是说，行为和任务本质上是统一的，该文件既可以注册为预定义行为，也可以直接调度执行；如果我们要调度执行该文件，那么该任务文件上传之后，Pistages 调度器就会用 alpine/git 映像启动一个容器作为运行时上下文，并在该容器中执行 `git clone git@github.com/projecteru2/pistages.git` 命令。
 
@@ -48,11 +52,13 @@ Pistages 会启动独立且隔离的上下文环境作为任务执行的运行�
 
 假设我们有很多任务需要 clone pistages.git 代码仓库，就可以将前面预先定义的行为文件注册成功之后，直接引用即可，而不需要反复在任务文件中定义该行为，例如：
 
-`name: Build Pistages`
-`uses:`
-  `main:`
-    `- dep: Clone Pistages`
-        `image: bitnami/git`
+```yaml
+name: Build Pistages
+uses:
+  main:
+    - dep: Clone Pistages
+        image: bitnami/git
+```
 
 上面内容的任务定义就通过名字 Clone Pistages 直接引用了预先定义好的行为，调度执行该任务文件，Pistages 会启动 bitnami/git 容器作为运行时上下文环境，并在其中执行预定义的 `git clone git@github.com:projecteru2/pistages.git` 命令。
 
@@ -60,19 +66,23 @@ Pistages 会启动独立且隔离的上下文环境作为任务执行的运行�
 
 进一步，如果我们希望 Clone Repo 能用于 clone 任意代码仓库，就需要用到 Pistages 行为定义参数化的配置项，继续参考下面的配置：
 
-`name: Clone Repo`
-`image: alpine/git`
-`run: git clone {{ .repo }}`
+```yaml
+name: Clone Repo
+image: alpine/git
+run: git clone {{ .repo }}
+```
 
 上述三行配置就实现了行为参数化，该行为配置将要 clone 的代码仓库地址参数化为 repo，在任务实际运行时，repo 的值将被引用方实际传入的值所替换。那么我们来看下如何给行为参数传递具体的值：
 
-`name: Build Pistages`
-`uses:`
-  `main:`
-    `- dep: Clone Repo`
-        `image: bitnami/git`
-        `with:`
+```yaml
+name: Build Pistages
+uses:
+  main:
+    - dep: Clone Repo
+        image: bitnami/git
+        with:
             repo: git@github.com:anrs/aa.git
+```
 
 上传并调度执行上面内容的话，Pistages 就会启动 bitnami/git 容器，并在其中执行 Clone Repo 行为，并将其中的 repo 参数替换为 with 配置项指定的代码仓库地址，也就是说，会在 bitnami/git 容器中执行 `git clone git@github.com:projecteru2/pistages.git` 命令。
 
@@ -80,28 +90,34 @@ Pistages 会启动独立且隔离的上下文环境作为任务执行的运行�
 
 我们也可以给 Clone Repo 加上默认参数，也就是说，当具体任务忽略 with 参数值是，默认执行 `git clone git@github.com:projecteru2/pistages.git` 命令。只须要在行为定义上增加一个 with 配置即可：
 
-`name: Clone Repo, Pistages if omitted`
-`image: alpine/git`
-`run: git clone {{ .repo }}`
-`with:`
-  `repo: git@github.com:projecteru2/pistages.git`
+```yaml
+name: Clone Repo, Pistages if omitted
+image: alpine/git
+run: git clone {{ .repo }}
+with:
+  repo: git@github.com:projecteru2/pistages.git
+```
 
 如果我们引用 Clone Repo, Pistages if omitted 行为，那么下面的任务和早先的 Build Pistages 任务是完全等价的：
 
-`name: Build Pistages`
-`uses:`
-  `main:`
-    `- dep: Clone Repo, Pistages if omitted`
-        `image: bitnami/git`
+```yaml
+name: Build Pistages
+uses:
+  main:
+    - dep: Clone Repo, Pistages if omitted
+        image: bitnami/git
+```
 
 ### 上下文继承
 
 如果想继承上一个任务的运行时上下文，而不是重新启动一个新容器，只需要简单忽略当前任务的 image 配置即可。例如：
 
-`name: Build Pistages`
-`uses:`
-  `main:`
-    `- dep: Clone Repo, Pistages if omitted`
+```yaml
+name: Build Pistages
+uses:
+  main:
+    - dep: Clone Repo, Pistages if omitted
+```
 
 上面配置的任务因为没有指定 image 配置项，所以会使用 Clone Repo, Pistages if omitted 行为的默认 image 也就是 alpine/git 映象。
 
@@ -109,14 +125,16 @@ Pistages 会启动独立且隔离的上下文环境作为任务执行的运行�
 
 如果希望多个任务并行执行，那么可以将任务分组，Pistages 会将组内的任务链顺序执行，但不同的任务组则是并行执行的。例如：
 
-`name: Build and Lint`
-`uses:`
-  `make:`
-    `- dep: Clone Repo, Pistages if omitted`
-    `- run: make build`
-  `lint:`
-    `- dep: Clone Repo, Pistages if omitted`
-    `- run: make lint`
+```yaml
+name: Build and Lint
+uses:
+  make:
+    - dep: Clone Repo, Pistages if omitted
+    - run: make build
+  lint:
+    - dep: Clone Repo, Pistages if omitted
+    - run: make lint
+```
 
 上述配置会并行启动两个独立的容器，并各自在其中 clone pistages 代码之后，一个执行 make build 操作，而另一个执行 make lint 操作，两个容器并行运行，互不依赖，互不干扰。需要注意的是，两个容器的第二个 make 命令均继承了前一个任务的运行时上下文环境。
 

@@ -6,8 +6,8 @@ var (
 	// ErrInvalidValue .
 	ErrInvalidValue = New("invalid value")
 
-	// ErrNoSuchContainer .
-	ErrNoSuchContainer = New("no such container")
+	// ErrNoSuchWorkload .
+	ErrNoSuchWorkload = New("no such workload")
 
 	// ErrKeyExists .
 	ErrKeyExists = New("key is exists")

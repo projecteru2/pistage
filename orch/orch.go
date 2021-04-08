@@ -6,10 +6,10 @@ import (
 
 // Orchestrator .
 type Orchestrator interface {
-	Lambda(context.Context, LambdaOptions) (string, <-chan Message, error)
+	Lambda(context.Context, LambdaOptions) (<-chan Message, error)
 	Execute(context.Context, ExecuteOptions) (<-chan Message, error)
 
-	GetContainerID(ctx context.Context, app, entry string, labels []string) (string, error)
+	GetWorkloadID(ctx context.Context, app, entry string, labels []string) (string, error)
 }
 
 // Message .

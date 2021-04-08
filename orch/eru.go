@@ -7,7 +7,6 @@ import (
 	"time"
 
 	coreclient "github.com/projecteru2/core/client"
-	corecluster "github.com/projecteru2/core/cluster"
 	pb "github.com/projecteru2/core/rpc/gen"
 	coretypes "github.com/projecteru2/core/types"
 
@@ -23,30 +22,35 @@ type Eru struct {
 }
 
 // NewEru .
-func NewEru() *Eru {
-	cc := coreclient.NewClient(
+func NewEru() (*Eru, error) {
+	cc, err := coreclient.NewClient(
+		context.Background(),
 		config.Conf.EruAddr,
 		coretypes.AuthConfig{
 			Username: config.Conf.EruUsername,
 			Password: config.Conf.EruPassword,
 		},
 	)
-	return &Eru{cli: cc.GetRPCClient()}
+	if err != nil {
+		return nil, err
+	}
+
+	return &Eru{cli: cc.GetRPCClient()}, nil
 }
 
-// GetContainerID queries container ID via combination of appname, entrypoint and labels.
-func (e Eru) GetContainerID(ctx context.Context, app, entry string, labels []string) (string, error) {
+// GetWorkloadID queries workload ID via combination of appname, entrypoint and labels.
+func (e Eru) GetWorkloadID(ctx context.Context, app, entry string, labels []string) (string, error) {
 	return "cid", nil
 }
 
 // Execute .
 func (e Eru) Execute(ctx context.Context, eopts ExecuteOptions) (<-chan Message, error) {
-	exec, err := e.cli.ExecuteContainer(ctx)
+	exec, err := e.cli.ExecuteWorkload(ctx)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	if err := exec.Send(eopts.ExecuteContainerOptions); err != nil {
+	if err := exec.Send(eopts.ExecuteWorkloadOptions); err != nil {
 		return nil, errors.Trace(err)
 	}
 
@@ -67,7 +71,7 @@ func (e Eru) Execute(ctx context.Context, eopts ExecuteOptions) (<-chan Message,
 }
 
 // Lambda .
-func (e Eru) Lambda(ctx context.Context, lopts LambdaOptions) (string, <-chan Message, error) {
+func (e Eru) Lambda(ctx context.Context, lopts LambdaOptions) (<-chan Message, error) {
 	dopts := &pb.DeployOptions{
 		Name: config.Conf.EruDeployName,
 		Entrypoint: &pb.EntrypointOptions{
@@ -75,22 +79,27 @@ func (e Eru) Lambda(ctx context.Context, lopts LambdaOptions) (string, <-chan Me
 			Command: lopts.Command,
 			Dir:     "/",
 		},
-		CpuQuota:     lopts.CPU,
-		CpuBind:      lopts.CPUBind,
-		Memory:       lopts.Memory,
-		Storage:      lopts.Storage,
-		Podname:      lopts.Podname,
-		Image:        lopts.Image,
-		Count:        1,
-		Env:          lopts.Env,
-		Dns:          lopts.DNS,
-		Volumes:      lopts.Volumes,
-		Networkmode:  lopts.Network,
-		User:         config.Conf.EruDeployUser,
-		Data:         lopts.Data,
-		IgnoreHook:   false,
-		DeployMethod: corecluster.DeployAuto,
-		Labels:       lopts.Labels,
+		ResourceOpts: &pb.ResourceOptions{
+			CpuQuotaRequest: lopts.CPU,
+			CpuQuotaLimit:   lopts.CPU,
+			CpuBind:         lopts.CPUBind,
+			MemoryRequest:   lopts.Memory,
+			MemoryLimit:     lopts.Memory,
+			StorageRequest:  lopts.Storage,
+			StorageLimit:    lopts.Storage,
+			VolumesRequest:  lopts.Volumes,
+			VolumesLimit:    lopts.Volumes,
+		},
+		Podname:        lopts.Podname,
+		Image:          lopts.Image,
+		Count:          1,
+		Env:            lopts.Env,
+		Dns:            lopts.DNS,
+		User:           config.Conf.EruDeployUser,
+		Data:           lopts.Data,
+		IgnoreHook:     false,
+		DeployStrategy: pb.DeployOptions_AUTO,
+		Labels:         lopts.Labels,
 	}
 
 	opts := &pb.RunAndWaitOptions{
@@ -99,22 +108,22 @@ func (e Eru) Lambda(ctx context.Context, lopts LambdaOptions) (string, <-chan Me
 		Async:         false,
 	}
 
-	id, noti, err := e.lambda(ctx, opts)
+	noti, err := e.lambda(ctx, opts)
 	if err != nil {
-		return "", nil, errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 
-	return id, noti, nil
+	return noti, nil
 }
 
-func (e Eru) lambda(ctx context.Context, opts *pb.RunAndWaitOptions) (string, <-chan Message, error) {
+func (e Eru) lambda(ctx context.Context, opts *pb.RunAndWaitOptions) (<-chan Message, error) {
 	lamb, err := e.cli.RunAndWait(ctx)
 	if err != nil {
-		return "", nil, errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 
 	if err := lamb.Send(opts); err != nil {
-		return "", nil, errors.Trace(err)
+		return nil, errors.Trace(err)
 	}
 
 	exit := newExitCh()
@@ -130,25 +139,45 @@ func (e Eru) lambda(ctx context.Context, opts *pb.RunAndWaitOptions) (string, <-
 		}
 	}()
 
-	id, err := e.getContainerID(ctx, opts.DeployOptions, exit)
-	if err != nil {
-		exit.close()
-		return "", nil, errors.Trace(err)
+	return noti, nil
+}
+
+// bufferMsgOrOutput append the new msg into buffer or send them out if buffer full
+func bufferMsgOrOutput(noti chan<- Message, buf []byte, bufLen int, msg *Message) int {
+	capacity := len(buf)
+	msgLen := len(msg.Data)
+	if msgLen < 1 {
+		return bufLen
 	}
 
-	return id, noti, nil
+	if msgLen+bufLen < capacity {
+		copy(buf[bufLen:], msg.Data)
+		return bufLen + msgLen
+	}
+
+	// full
+	noti <- Message{
+		ID:   msg.ID,
+		Data: buf[:bufLen],
+	}
+
+	noti <- Message{
+		ID:   msg.ID,
+		Data: msg.Data,
+	}
+
+	return 0
 }
 
 func (e Eru) notify(ctx context.Context, recv receiver, noti chan<- Message, exit exitCh) error {
 	buf := make([]byte, 1024)
-	next := 0
-	start := -8
+	bufLen := 0
 
 	for {
 		msg := e.recv(recv)
 		if msg.EOF || msg.Error != nil {
-			if next > 0 {
-				noti <- Message{Data: buf[:next]}
+			if bufLen > 0 {
+				noti <- Message{Data: buf[:bufLen]}
 			}
 
 			noti <- msg
@@ -164,38 +193,18 @@ func (e Eru) notify(ctx context.Context, recv receiver, noti chan<- Message, exi
 		default:
 		}
 
-		// TODO: process exitCode
-		if start < 0 {
-			start++
-			continue
-		}
-
-		switch n := next + len(msg.Data[start:]); {
-		case n == 1024:
-			copy(buf[next:], msg.Data[start:])
-			fallthrough
-
-		case n > 1024:
-			noti <- Message{Data: buf[:next]}
-			next = 0
-
-		default:
-			next += copy(buf[next:], msg.Data[start:])
-		}
-
-		// skips the first byte due to https://stackoverflow.com/questions/52774830/docker-exec-command-from-golang-api
-		start = 0
+		bufLen = bufferMsgOrOutput(noti, buf, bufLen, &msg)
 	}
 }
 
-func (e Eru) getContainerID(ctx context.Context, opts *pb.DeployOptions, exit exitCh) (string, error) {
+func (e Eru) getWorkloadID(ctx context.Context, opts *pb.DeployOptions, exit exitCh) (string, error) {
 	for i := 1; i <= 10; i = i % 10 {
-		id, err := e.doGetContainerID(ctx, opts)
+		id, err := e.doGetWorkloadID(ctx, opts)
 		if err == nil {
 			return id, nil
 		}
 
-		if !errors.Contain(err, errors.ErrNoSuchContainer) {
+		if !errors.Contain(err, errors.ErrNoSuchWorkload) {
 			return "", err
 		}
 
@@ -209,36 +218,36 @@ func (e Eru) getContainerID(ctx context.Context, opts *pb.DeployOptions, exit ex
 		}
 	}
 
-	return "", errors.Annotatef(errors.ErrInvalidValue, "cannot fetch container ID, as exitCh had been closed")
+	return "", errors.Annotatef(errors.ErrInvalidValue, "cannot fetch workload ID, as exitCh had been closed")
 }
 
-func (e Eru) doGetContainerID(ctx context.Context, dopts *pb.DeployOptions) (string, error) {
-	lopts := &pb.ListContainersOptions{
+func (e Eru) doGetWorkloadID(ctx context.Context, dopts *pb.DeployOptions) (string, error) {
+	lopts := &pb.ListWorkloadsOptions{
 		Appname:    dopts.Name,
 		Entrypoint: dopts.Entrypoint.Name,
 		Labels:     dopts.Labels,
 		Limit:      2,
 	}
-	conts, err := e.listContainers(ctx, lopts)
+	conts, err := e.listWorkloads(ctx, lopts)
 	if err != nil {
 		return "", errors.Trace(err)
 	}
 
 	switch {
 	case len(conts) < 1:
-		return "", errors.Annotatef(errors.ErrNoSuchContainer, "for %s/%s with labels %s",
+		return "", errors.Annotatef(errors.ErrNoSuchWorkload, "for %s/%s with labels %s",
 			lopts.Appname, lopts.Entrypoint, lopts.Labels)
 	case len(conts) > 1:
-		return "", errors.Annotatef(errors.ErrInvalidValue, "there are more than one container for %s/%s with labels %s",
+		return "", errors.Annotatef(errors.ErrInvalidValue, "there are more than one workload for %s/%s with labels %s",
 			lopts.Appname, lopts.Entrypoint, lopts.Labels)
 	}
 
 	return conts[0].Id, nil
 }
 
-func (e Eru) listContainers(ctx context.Context, opts *pb.ListContainersOptions) ([]*pb.Container, error) {
-	conts := []*pb.Container{}
-	resp, err := e.cli.ListContainers(ctx, opts)
+func (e Eru) listWorkloads(ctx context.Context, opts *pb.ListWorkloadsOptions) ([]*pb.Workload, error) {
+	conts := []*pb.Workload{}
+	resp, err := e.cli.ListWorkloads(ctx, opts)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -265,12 +274,12 @@ func (e Eru) recv(recv receiver) Message {
 	case err != nil:
 		return Message{Error: err}
 	default:
-		return Message{ID: msg.ContainerId, Data: msg.Data}
+		return Message{ID: msg.WorkloadId, Data: msg.Data}
 	}
 }
 
 type receiver interface {
-	Recv() (*pb.AttachContainerMessage, error)
+	Recv() (*pb.AttachWorkloadMessage, error)
 }
 
 type exitCh struct {
