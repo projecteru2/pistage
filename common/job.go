@@ -25,5 +25,6 @@ type Step struct {
 	Uses        string            `yaml:"uses"`
 	With        map[string]string `yaml:"with"`
 	Run         []string          `yaml:"run"`
+	OnError     []string          `yaml:"on_error"`
 	Environment map[string]string `yaml:"env"`
 }

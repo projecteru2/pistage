@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/juju/errors"
+	"github.com/pkg/errors"
 )
 
 // ErrorNotDAG is returned when the input dependencies is not a DAG

@@ -5,21 +5,24 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strconv"
 	"strings"
 
-	coreclient "github.com/projecteru2/core/client"
+	"github.com/pkg/errors"
 	corecluster "github.com/projecteru2/core/cluster"
 	corepb "github.com/projecteru2/core/rpc/gen"
-	coretypes "github.com/projecteru2/core/types"
 	"github.com/projecteru2/phistage/common"
 	"github.com/projecteru2/phistage/helpers/command"
 )
 
 const (
 	// stupid eru-core doesn't export this
-	exitMessagePrefix = "[exitcode]"
+	// BTW I really didn't think this can be a string with a space as suffix...
+	exitMessagePrefix = "[exitcode] "
 	workingDir        = "/phistage"
 )
+
+var ErrExecutionError = errors.New("Execution error")
 
 type EruJobExecutor struct {
 	eru      corepb.CoreRPCClient
@@ -32,17 +35,9 @@ type EruJobExecutor struct {
 
 // NewEruJobExecutor creates an ERU executor for this job.
 // Since job needs to know its context, phistage is assigned too.
-func NewEruJobExecutor(job *common.Job, phistage *common.Phistage) (*EruJobExecutor, error) {
-	c, err := coreclient.NewClient(context.TODO(), "10.22.12.87:5001", coretypes.AuthConfig{
-		Username: "",
-		Password: "",
-	})
-	if err != nil {
-		return nil, err
-	}
-
+func NewEruJobExecutor(job *common.Job, phistage *common.Phistage, eru corepb.CoreRPCClient) (*EruJobExecutor, error) {
 	return &EruJobExecutor{
-		eru:            c.GetRPCClient(),
+		eru:            eru,
 		job:            job,
 		phistage:       phistage,
 		jobEnvironment: phistage.Environment,
@@ -152,44 +147,74 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 		// use that registered step's run and replace with current args
 	}
 
-	environment := command.MergeEnvironments(e.jobEnvironment, step.Environment)
+	var (
+		err         error
+		environment = command.MergeEnvironments(e.jobEnvironment, step.Environment)
+	)
+
+	defer func() {
+		if !errors.Is(err, ErrExecutionError) {
+			return
+		}
+		for _, onError := range step.OnError {
+			e.executeCommand(ctx, onError, step.With, environment, nil)
+		}
+	}()
 
 	for _, run := range step.Run {
-		// use args, envs, and reserved vars to build the cmd
-		// currently reserved vars is empty
-		cmd, err := command.RenderCommand(run, step.With, environment, nil)
+		err = e.executeCommand(ctx, run, step.With, environment, nil)
 		if err != nil {
 			return err
 		}
 
-		exec, err := e.eru.ExecuteWorkload(ctx)
+	}
+	return nil
+}
+
+// executeCommand executes cmd with given arguments, environments and variables.
+// use args, envs, and reserved vars to build the cmd, currently reserved vars is empty.
+// This method should be sync.
+func (e *EruJobExecutor) executeCommand(ctx context.Context, cmd string, args, env, vars map[string]string) error {
+	cmd, err := command.RenderCommand(cmd, args, env, vars)
+	if err != nil {
+		return err
+	}
+
+	exec, err := e.eru.ExecuteWorkload(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := exec.Send(&corepb.ExecuteWorkloadOptions{
+		WorkloadId: e.workloadID,
+		Commands:   []string{"/bin/sh", "-c", cmd},
+		Envs:       command.ToEnvironmentList(env),
+	}); err != nil {
+		return err
+	}
+
+	for {
+		message, err := exec.Recv()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return err
 		}
 
-		if err := exec.Send(&corepb.ExecuteWorkloadOptions{
-			WorkloadId: e.workloadID,
-			Commands:   []string{"/bin/sh", "-c", cmd},
-			Envs:       command.ToEnvironmentList(environment),
-		}); err != nil {
-			return err
-		}
-
-		for {
-			message, err := exec.Recv()
-			if err == io.EOF {
-				break
-			}
+		data := string(message.Data)
+		if strings.HasPrefix(data, exitMessagePrefix) {
+			fmt.Println("[step finished]")
+			exitcode, err := strconv.Atoi(strings.TrimPrefix(data, exitMessagePrefix))
 			if err != nil {
 				return err
 			}
-
-			data := string(message.Data)
-			if strings.HasPrefix(data, exitMessagePrefix) {
-				fmt.Println("[step finished]")
-			} else {
-				fmt.Print(data)
+			if exitcode != 0 {
+				return errors.WithMessagef(ErrExecutionError, "exitcode: %d", exitcode)
 			}
+		} else {
+			// log trace
+			fmt.Print(data)
 		}
 	}
 	return nil

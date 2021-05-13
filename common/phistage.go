@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/juju/errors"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -11,10 +11,11 @@ type Phistage struct {
 	Name        string            `yaml:"name"`
 	Jobs        map[string]*Job   `yaml:"jobs"`
 	Environment map[string]string `yaml:"env"`
+	Executor    string            `yaml:"executor"`
 }
 
-// initJobs set name to all jobs
-func (p *Phistage) initJobs() {
+// init set name to all jobs
+func (p *Phistage) init() {
 	for jobName, job := range p.Jobs {
 		job.Name = jobName
 	}
@@ -83,6 +84,6 @@ func FromSpec(content []byte) (*Phistage, error) {
 		return nil, err
 	}
 
-	p.initJobs()
+	p.init()
 	return p, nil
 }
