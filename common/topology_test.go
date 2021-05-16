@@ -68,23 +68,32 @@ func TestTopologyStream1(t *testing.T) {
 	jobs, finished, finish := tp.stream()
 	result := make(chan string)
 	r := []string{}
-	wg := sync.WaitGroup{}
 
-	wg.Add(1)
+	wg1 := sync.WaitGroup{}
+	wg1.Add(1)
 	go func() {
-		defer wg.Done()
+		defer wg1.Done()
 		for e := range result {
 			r = append(r, e)
 		}
 	}()
 
+	wg2 := sync.WaitGroup{}
 	for job := range jobs {
-		result <- job
-		finished <- job
+		wg2.Add(1)
+		go func(job string) {
+			defer func() {
+				finished <- job
+				wg2.Done()
+			}()
+			result <- job
+		}(job)
 	}
+	wg2.Wait()
 	finish()
+
 	close(result)
-	wg.Wait()
+	wg1.Wait()
 
 	assert.Equal(len(r), 8)
 	assert.Equal(r[len(r)-1], "I")
@@ -99,23 +108,32 @@ func TestTopologyStream2(t *testing.T) {
 	jobs, finished, finish := tp.stream()
 	result := make(chan string)
 	r := []string{}
-	wg := sync.WaitGroup{}
 
-	wg.Add(1)
+	wg1 := sync.WaitGroup{}
+	wg1.Add(1)
 	go func() {
-		defer wg.Done()
+		defer wg1.Done()
 		for e := range result {
 			r = append(r, e)
 		}
 	}()
 
+	wg2 := sync.WaitGroup{}
 	for job := range jobs {
-		result <- job
-		finished <- job
+		wg2.Add(1)
+		go func(job string) {
+			defer func() {
+				finished <- job
+				wg2.Done()
+			}()
+			result <- job
+		}(job)
 	}
+	wg2.Wait()
 	finish()
+
 	close(result)
-	wg.Wait()
+	wg1.Wait()
 
 	assert.Equal(len(r), 8)
 	assert.Equal(r[len(r)-1], "C")
@@ -132,23 +150,79 @@ func TestTopologyStream3(t *testing.T) {
 	jobs, finished, finish := tp.stream()
 	result := make(chan string)
 	r := []string{}
-	wg := sync.WaitGroup{}
 
-	wg.Add(1)
+	wg1 := sync.WaitGroup{}
+	wg1.Add(1)
 	go func() {
-		defer wg.Done()
+		defer wg1.Done()
 		for e := range result {
 			r = append(r, e)
 		}
 	}()
 
+	wg2 := sync.WaitGroup{}
 	for job := range jobs {
-		result <- job
-		finished <- job
+		wg2.Add(1)
+		go func(job string) {
+			defer func() {
+				finished <- job
+				wg2.Done()
+			}()
+			result <- job
+		}(job)
 	}
+	wg2.Wait()
 	finish()
+
 	close(result)
-	wg.Wait()
+	wg1.Wait()
 
 	assert.Equal(len(r), 3)
+}
+
+func TestTopologyStream4(t *testing.T) {
+	assert := assert.New(t)
+
+	tp := newTopo()
+	// cycle here
+	tp.addDependencies("C", "A", "B", "I")
+	tp.addDependencies("D", "C", "E")
+	tp.addDependencies("I", "D")
+	tp.addDependencies("E", "B", "G", "H")
+
+	jobs, finished, finish := tp.stream()
+	result := make(chan string)
+	r := []string{}
+
+	wg1 := sync.WaitGroup{}
+	wg1.Add(1)
+	go func() {
+		defer wg1.Done()
+		for e := range result {
+			r = append(r, e)
+		}
+	}()
+
+	wg2 := sync.WaitGroup{}
+	for job := range jobs {
+		wg2.Add(1)
+		go func(job string) {
+			defer func() {
+				finished <- job
+				wg2.Done()
+			}()
+			result <- job
+		}(job)
+	}
+	wg2.Wait()
+	finish()
+
+	close(result)
+	wg1.Wait()
+
+	// error
+	// only 5 vertices returned
+	// and the highest level of execution is E
+	assert.Equal(len(r), 5)
+	assert.Equal(r[len(r)-1], "E")
 }

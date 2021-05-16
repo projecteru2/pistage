@@ -25,6 +25,8 @@ func newTopo() *topo {
 	}
 }
 
+// addDependencies adds dependencies for name,
+// if name has no dependencies, just simply leave dependencies empty.
 func (t *topo) addDependencies(name string, dependencies ...string) {
 	t.vertices[name] = 0
 	for _, dependency := range dependencies {
@@ -36,6 +38,12 @@ func (t *topo) addDependencies(name string, dependencies ...string) {
 	}
 }
 
+// graph returns the global execution graph for the jobs.
+// Note that this is not that high efficiency.
+// For example, if A->B->C, A->D->E, this graph shows that C, E can be executed parallelly,
+// and B, D parallelly after C and E both finishes.
+// But the fact is that as soon as E finishes, D can be started, the same situation is also for B.
+// When really need this efficiency, use stream instead.
 func (t *topo) graph() ([][]string, error) {
 	var (
 		r         [][]string
@@ -73,6 +81,11 @@ func (t *topo) graph() ([][]string, error) {
 	return r, nil
 }
 
+// stream returns a job channel to get jobs from,
+// a finish channel indicating that one job is finished,
+// and a callback function to tell that all jobs are finished.
+// Remmeber to send a finished job name back to finish channel,
+// and call the callback when and only when all jobs are finished.
 func (t *topo) stream() (<-chan string, chan<- string, func()) {
 	length := len(t.vertices)
 	t.jobCh = make(chan string, length)
