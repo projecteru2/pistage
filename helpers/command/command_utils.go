@@ -43,9 +43,9 @@ func ToEnvironmentList(env map[string]string) []string {
 	return envs
 }
 
-// MergeEnvironments merges higherPriority into lowerPriority,
+// MergeVariables merges higherPriority into lowerPriority,
 // will override the values in lowerPriority.
-func MergeEnvironments(lowerPriority, higherPriority map[string]string) map[string]string {
+func MergeVariables(lowerPriority, higherPriority map[string]string) map[string]string {
 	m := map[string]string{}
 	for k, v := range lowerPriority {
 		m[k] = v

@@ -8,11 +8,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/projecteru2/phistage/common"
+	"github.com/projecteru2/phistage/helpers/command"
+	"github.com/projecteru2/phistage/store"
+
 	"github.com/pkg/errors"
 	corecluster "github.com/projecteru2/core/cluster"
 	corepb "github.com/projecteru2/core/rpc/gen"
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/helpers/command"
 )
 
 const (
@@ -28,6 +30,7 @@ type EruJobExecutor struct {
 	eru      corepb.CoreRPCClient
 	job      *common.Job
 	phistage *common.Phistage
+	store    store.Store
 
 	workloadID     string
 	jobEnvironment map[string]string
@@ -35,9 +38,10 @@ type EruJobExecutor struct {
 
 // NewEruJobExecutor creates an ERU executor for this job.
 // Since job needs to know its context, phistage is assigned too.
-func NewEruJobExecutor(job *common.Job, phistage *common.Phistage, eru corepb.CoreRPCClient) (*EruJobExecutor, error) {
+func NewEruJobExecutor(job *common.Job, phistage *common.Phistage, eru corepb.CoreRPCClient, store store.Store) (*EruJobExecutor, error) {
 	return &EruJobExecutor{
 		eru:            eru,
+		store:          store,
 		job:            job,
 		phistage:       phistage,
 		jobEnvironment: phistage.Environment,
@@ -141,16 +145,44 @@ func (e *EruJobExecutor) Execute(ctx context.Context) error {
 	return nil
 }
 
-func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) error {
-	if step.Uses != "" && false {
-		// get the uses context
-		// use that registered step's run and replace with current args
+// replaceStepWithUses replaces the step with the actual step identified by uses.
+// Name will not be replaced, the commands to execute aka Run and OnError will be replaced,
+// also Environment and With will be merged, uses' environment and with has a lower priority,
+// will be overridden by step's environment and with,
+// If uses is not given, directly return the original step.
+func (e *EruJobExecutor) replaceStepWithUses(ctx context.Context, step *common.Step) (*common.Step, error) {
+	if step.Uses == "" {
+		return step, nil
 	}
 
-	var (
-		err         error
-		environment = command.MergeEnvironments(e.jobEnvironment, step.Environment)
-	)
+	uses, err := e.store.GetRegisteredStep(ctx, step.Uses)
+	if err != nil {
+		return nil, err
+	}
+	s := &common.Step{
+		Name:        step.Name,
+		Run:         uses.Run,
+		OnError:     uses.OnError,
+		Environment: command.MergeVariables(uses.Environment, step.Environment),
+		With:        command.MergeVariables(uses.With, step.With),
+	}
+	return s, nil
+}
+
+// executeStep executes a step.
+// It first replace the step with uses if uses is given,
+// then prepare the arguments and environments to the command.
+// Then execute the command, retrieve the output, the execution will stop if any error occurs.
+// It then retries to execute the OnError commands, also with the arguments and environments.
+func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) error {
+	var err error
+
+	step, err = e.replaceStepWithUses(ctx, step)
+	if err != nil {
+		return err
+	}
+
+	environment := command.MergeVariables(e.jobEnvironment, step.Environment)
 
 	defer func() {
 		if !errors.Is(err, ErrExecutionError) {

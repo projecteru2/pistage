@@ -3,10 +3,11 @@ module github.com/projecteru2/phistage
 go 1.16
 
 require (
+	github.com/bwmarrin/snowflake v0.3.0
 	github.com/flosch/pongo2/v4 v4.0.2
 	github.com/pkg/errors v0.9.1
 	github.com/projecteru2/core v0.0.0-20210511020756-ac19e3989237
-	github.com/sethvargo/go-signalcontext v0.1.0 // indirect
+	github.com/sethvargo/go-signalcontext v0.1.0
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect

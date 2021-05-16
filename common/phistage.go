@@ -8,10 +8,10 @@ import (
 var ErrorJobNotFound = errors.New("Job not found")
 
 type Phistage struct {
-	Name        string            `yaml:"name"`
-	Jobs        map[string]*Job   `yaml:"jobs"`
-	Environment map[string]string `yaml:"env"`
-	Executor    string            `yaml:"executor"`
+	Name        string            `yaml:"name" json:"name"`
+	Jobs        map[string]*Job   `yaml:"jobs" json:"jobs"`
+	Environment map[string]string `yaml:"env" json:"env"`
+	Executor    string            `yaml:"executor" json:"executor"`
 }
 
 // init set name to all jobs
@@ -44,7 +44,7 @@ func (p *Phistage) JobDependencies() ([][]*Job, error) {
 		}
 	}
 
-	deps, err := tp.sort()
+	deps, err := tp.graph()
 	if err != nil {
 		return nil, err
 	}

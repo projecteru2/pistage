@@ -16,4 +16,7 @@ type Config struct {
 	EruAddress  string `yaml:"eru_address"`
 	EruUsername string `yaml:"eru_username"`
 	EruPassword string `yaml:"eru_password"`
+
+	// FileSystem storage config
+	FileSystemStoreRoot string `yaml:"filesystem_store_root"`
 }

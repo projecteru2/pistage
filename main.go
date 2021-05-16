@@ -7,6 +7,8 @@ import (
 	"github.com/projecteru2/phistage/executors"
 	"github.com/projecteru2/phistage/executors/eru"
 	"github.com/projecteru2/phistage/stager"
+	"github.com/projecteru2/phistage/store/filesystem"
+
 	"github.com/sethvargo/go-signalcontext"
 )
 
@@ -16,9 +18,14 @@ func main() {
 		DefaultJobExecuteTimeout: 1200,
 		EruAddress:               "10.22.12.87:5001",
 		StagerWorkers:            5,
+		FileSystemStoreRoot:      "phistage",
 	}
 
-	eruProvider, err := eru.NewEruJobExecutorProvider(config)
+	fs, err := filesystem.NewFileSystemStore(config.FileSystemStoreRoot)
+	if err != nil {
+		return
+	}
+	eruProvider, err := eru.NewEruJobExecutorProvider(config, fs)
 	if err != nil {
 		return
 	}

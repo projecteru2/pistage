@@ -3,19 +3,22 @@ package eru
 import (
 	"context"
 
+	"github.com/projecteru2/phistage/common"
+	"github.com/projecteru2/phistage/executors"
+	"github.com/projecteru2/phistage/store"
+
 	coreclient "github.com/projecteru2/core/client"
 	corepb "github.com/projecteru2/core/rpc/gen"
 	coretypes "github.com/projecteru2/core/types"
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/executors"
 )
 
 type EruJobExecutorProvider struct {
 	config *common.Config
 	eru    corepb.CoreRPCClient
+	store  store.Store
 }
 
-func NewEruJobExecutorProvider(config *common.Config) (*EruJobExecutorProvider, error) {
+func NewEruJobExecutorProvider(config *common.Config, store store.Store) (*EruJobExecutorProvider, error) {
 	c, err := coreclient.NewClient(context.TODO(), config.EruAddress, coretypes.AuthConfig{
 		Username: config.EruUsername,
 		Password: config.EruPassword,
@@ -27,6 +30,7 @@ func NewEruJobExecutorProvider(config *common.Config) (*EruJobExecutorProvider, 
 	return &EruJobExecutorProvider{
 		config: config,
 		eru:    c.GetRPCClient(),
+		store:  store,
 	}, nil
 }
 
@@ -35,5 +39,5 @@ func (ep *EruJobExecutorProvider) GetName() string {
 }
 
 func (ep *EruJobExecutorProvider) GetJobExecutor(job *common.Job, phistage *common.Phistage) (executors.JobExecutor, error) {
-	return NewEruJobExecutor(job, phistage, ep.eru)
+	return NewEruJobExecutor(job, phistage, ep.eru, ep.store)
 }

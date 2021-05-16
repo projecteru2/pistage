@@ -1,12 +1,13 @@
 package common
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTopology(t *testing.T) {
+func TestTopologyGraph1(t *testing.T) {
 	assert := assert.New(t)
 
 	tp1 := newTopo()
@@ -15,7 +16,7 @@ func TestTopology(t *testing.T) {
 	tp1.addEdge("C", "D")
 	tp1.addEdge("C", "E")
 
-	r1, err := tp1.sort()
+	r1, err := tp1.graph()
 	assert.NoError(err)
 	assert.Equal(len(r1), 3)
 	assert.Equal(len(r1[0]), 2)
@@ -35,7 +36,7 @@ func TestTopology(t *testing.T) {
 	tp2.addEdge("M", "F")
 	tp2.addEdge("M", "G")
 
-	r2, err := tp2.sort()
+	r2, err := tp2.graph()
 	assert.NoError(err)
 	assert.Equal(len(r2), 4)
 	assert.Equal(len(r2[0]), 4)
@@ -44,4 +45,127 @@ func TestTopology(t *testing.T) {
 	assert.Equal(r2[2][0], "H")
 	assert.Equal(len(r2[3]), 1)
 	assert.Equal(r2[3][0], "E")
+}
+
+func TestTopologyGraph2(t *testing.T) {
+	assert := assert.New(t)
+
+	tp := newTopo()
+	tp.addEdge("A", "")
+	tp.addEdge("B", "")
+	tp.addEdge("C", "")
+
+	tp.addEdge("D", "F")
+	tp.addEdge("E", "F")
+
+	r, err := tp.graph()
+	assert.NoError(err)
+	assert.Equal(len(r), 2)
+}
+
+func TestTopologyStream1(t *testing.T) {
+	assert := assert.New(t)
+
+	tp := newTopo()
+	tp.addEdge("A", "C")
+	tp.addEdge("B", "C")
+	tp.addEdge("C", "D")
+	tp.addEdge("D", "I")
+	tp.addEdge("B", "E")
+	tp.addEdge("G", "E")
+	tp.addEdge("H", "E")
+	tp.addEdge("E", "D")
+
+	jobs, finished, finish := tp.stream()
+	result := make(chan string)
+	r := []string{}
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for e := range result {
+			r = append(r, e)
+		}
+	}()
+
+	for job := range jobs {
+		result <- job
+		finished <- job
+	}
+	finish()
+	close(result)
+	wg.Wait()
+
+	assert.Equal(len(r), 8)
+	assert.Equal(r[len(r)-1], "I")
+}
+
+func TestTopologyStream2(t *testing.T) {
+	assert := assert.New(t)
+
+	tp := newTopo()
+	tp.addEdge("A", "C")
+	tp.addEdge("B", "C")
+	tp.addEdge("D", "C")
+	tp.addEdge("E", "C")
+	tp.addEdge("F", "C")
+	tp.addEdge("G", "C")
+	tp.addEdge("H", "C")
+
+	jobs, finished, finish := tp.stream()
+	result := make(chan string)
+	r := []string{}
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for e := range result {
+			r = append(r, e)
+		}
+	}()
+
+	for job := range jobs {
+		result <- job
+		finished <- job
+	}
+	finish()
+	close(result)
+	wg.Wait()
+
+	assert.Equal(len(r), 8)
+	assert.Equal(r[len(r)-1], "C")
+}
+
+func TestTopologyStream3(t *testing.T) {
+	assert := assert.New(t)
+
+	tp := newTopo()
+	tp.addEdge("A", "")
+	tp.addEdge("B", "")
+	tp.addEdge("C", "")
+
+	jobs, finished, finish := tp.stream()
+	result := make(chan string)
+	r := []string{}
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for e := range result {
+			r = append(r, e)
+		}
+	}()
+
+	for job := range jobs {
+		result <- job
+		finished <- job
+	}
+	finish()
+	close(result)
+	wg.Wait()
+
+	assert.Equal(len(r), 3)
 }

@@ -13,7 +13,6 @@ type Stager struct {
 	config  *common.Config
 	stageCh chan *common.Phistage
 	stopCh  chan struct{}
-	errorCh chan error
 	wg      sync.WaitGroup
 }
 
@@ -22,7 +21,6 @@ func NewStager(config *common.Config) *Stager {
 		config:  config,
 		stageCh: make(chan *common.Phistage),
 		stopCh:  make(chan struct{}),
-		errorCh: make(chan error),
 		wg:      sync.WaitGroup{},
 	}
 }
@@ -43,12 +41,12 @@ func (s *Stager) Add(phistage *common.Phistage) {
 	s.stageCh <- phistage
 }
 
-func (s *Stager) worker() error {
+func (s *Stager) worker() {
 	defer s.wg.Done()
 	for {
 		select {
 		case <-s.stopCh:
-			return nil
+			return
 		case phistage := <-s.stageCh:
 			if err := s.run(phistage); err != nil {
 				fmt.Println(err)

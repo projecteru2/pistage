@@ -14,6 +14,8 @@ var ErrorNotDAG = errors.New("Input should be a DAG")
 type topo struct {
 	vertices map[string]int
 	edges    map[string][]string
+	jobCh    chan string
+	finishCh chan string
 }
 
 func newTopo() *topo {
@@ -23,15 +25,19 @@ func newTopo() *topo {
 	}
 }
 
+var emptyVertex = ""
+
 func (t *topo) addEdge(from, to string) {
 	if _, ok := t.vertices[from]; !ok {
 		t.vertices[from] = 0
 	}
-	t.vertices[to]++
-	t.edges[from] = append(t.edges[from], to)
+	if to != emptyVertex {
+		t.vertices[to]++
+		t.edges[from] = append(t.edges[from], to)
+	}
 }
 
-func (t *topo) sort() ([][]string, error) {
+func (t *topo) graph() ([][]string, error) {
 	var (
 		r         [][]string
 		total     = len(t.vertices)
@@ -66,4 +72,77 @@ func (t *topo) sort() ([][]string, error) {
 		collected += len(vertices)
 	}
 	return r, nil
+}
+
+func (t *topo) stream() (<-chan string, chan<- string, func()) {
+	length := len(t.vertices)
+	t.jobCh = make(chan string, length)
+	t.finishCh = make(chan string, length)
+
+	go t.checkJobs()
+	return t.jobCh, t.finishCh, func() {
+		close(t.finishCh)
+	}
+}
+
+func (t *topo) checkJobs() {
+	defer close(t.jobCh)
+	var (
+		total      = len(t.vertices)
+		collected  = 0
+		vertices   = []string{}
+		unfinished = 0
+	)
+
+	for vname, indegree := range t.vertices {
+		if indegree != 0 {
+			continue
+		}
+		vertices = append(vertices, vname)
+	}
+	// if no vertices is chosen, there's a circle,
+	// which is a wrong input
+	if len(vertices) == 0 {
+		return
+	}
+
+	collected += len(vertices)
+	unfinished += len(vertices)
+	for _, vname := range vertices {
+		t.jobCh <- vname
+	}
+
+	for collected < total {
+		for vname := range t.finishCh {
+			unfinished--
+
+			tos := t.edges[vname]
+			for _, to := range tos {
+				t.vertices[to]--
+			}
+			delete(t.vertices, vname)
+			delete(t.edges, vname)
+
+			vertices = []string{}
+			for _, vname := range tos {
+				if t.vertices[vname] != 0 {
+					continue
+				}
+				vertices = append(vertices, vname)
+			}
+
+			if len(vertices) == 0 {
+				if unfinished == 0 {
+					return
+				}
+				continue
+			}
+
+			collected += len(vertices)
+			unfinished += len(vertices)
+			for _, vname := range vertices {
+				t.jobCh <- vname
+			}
+		}
+	}
 }
