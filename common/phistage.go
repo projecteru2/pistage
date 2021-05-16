@@ -39,9 +39,7 @@ func (p *Phistage) JobDependencies() ([][]*Job, error) {
 		tp   = newTopo()
 	)
 	for _, job := range p.Jobs {
-		for _, dependentJobName := range job.DependsOn {
-			tp.addEdge(dependentJobName, job.Name)
-		}
+		tp.addDependencies(job.Name, job.DependsOn...)
 	}
 
 	deps, err := tp.graph()

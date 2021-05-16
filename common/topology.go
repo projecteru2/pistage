@@ -25,15 +25,14 @@ func newTopo() *topo {
 	}
 }
 
-var emptyVertex = ""
-
-func (t *topo) addEdge(from, to string) {
-	if _, ok := t.vertices[from]; !ok {
-		t.vertices[from] = 0
-	}
-	if to != emptyVertex {
-		t.vertices[to]++
-		t.edges[from] = append(t.edges[from], to)
+func (t *topo) addDependencies(name string, dependencies ...string) {
+	t.vertices[name] = 0
+	for _, dependency := range dependencies {
+		if _, ok := t.vertices[dependency]; !ok {
+			t.vertices[dependency] = 0
+		}
+		t.vertices[name]++
+		t.edges[dependency] = append(t.edges[dependency], name)
 	}
 }
 
