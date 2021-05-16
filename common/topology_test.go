@@ -226,3 +226,46 @@ func TestTopologyStream4(t *testing.T) {
 	assert.Equal(len(r), 5)
 	assert.Equal(r[len(r)-1], "E")
 }
+
+func TestTopologyStream5(t *testing.T) {
+	assert := assert.New(t)
+
+	tp := newTopo()
+	tp.addDependencies("A", "B")
+	tp.addDependencies("B", "C")
+	tp.addDependencies("C", "D")
+	tp.addDependencies("D", "E")
+
+	jobs, finished, finish := tp.stream()
+	result := make(chan string)
+	r := []string{}
+
+	wg1 := sync.WaitGroup{}
+	wg1.Add(1)
+	go func() {
+		defer wg1.Done()
+		for e := range result {
+			r = append(r, e)
+		}
+	}()
+
+	index := 0
+	for job := range jobs {
+		result <- job
+
+		index++
+		if index == 3 {
+			// 3 error
+			finish()
+		} else {
+			// 0, 1, 2 finished
+			finished <- job
+		}
+	}
+
+	close(result)
+	wg1.Wait()
+
+	assert.Equal(len(r), 3)
+	assert.Equal(r, []string{"E", "D", "C"})
+}

@@ -125,36 +125,38 @@ func (t *topo) checkJobs() {
 	}
 
 	for collected < total {
-		for vname := range t.finishCh {
-			unfinished--
+		vname, ok := <-t.finishCh
+		if !ok {
+			break
+		}
+		unfinished--
 
-			tos := t.edges[vname]
-			for _, to := range tos {
-				t.vertices[to]--
-			}
-			delete(t.vertices, vname)
-			delete(t.edges, vname)
+		tos := t.edges[vname]
+		for _, to := range tos {
+			t.vertices[to]--
+		}
+		delete(t.vertices, vname)
+		delete(t.edges, vname)
 
-			vertices = []string{}
-			for _, vname := range tos {
-				if t.vertices[vname] != 0 {
-					continue
-				}
-				vertices = append(vertices, vname)
-			}
-
-			if len(vertices) == 0 {
-				if unfinished == 0 {
-					return
-				}
+		vertices = []string{}
+		for _, vname := range tos {
+			if t.vertices[vname] != 0 {
 				continue
 			}
+			vertices = append(vertices, vname)
+		}
 
-			collected += len(vertices)
-			unfinished += len(vertices)
-			for _, vname := range vertices {
-				t.jobCh <- vname
+		if len(vertices) == 0 {
+			if unfinished == 0 {
+				return
 			}
+			continue
+		}
+
+		collected += len(vertices)
+		unfinished += len(vertices)
+		for _, vname := range vertices {
+			t.jobCh <- vname
 		}
 	}
 }
