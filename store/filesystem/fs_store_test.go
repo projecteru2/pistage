@@ -16,7 +16,8 @@ func TestFileSystemStorePhistage(t *testing.T) {
 	assert.NoError(err)
 	defer os.RemoveAll(rootfs)
 
-	fs := NewFileSystemStore(rootfs)
+	fs, err := NewFileSystemStore(rootfs)
+	assert.NoError(err)
 	content, err := ioutil.ReadFile("./pistage.test.yml")
 	assert.NoError(err)
 
@@ -52,7 +53,8 @@ func TestFileSystemRegister(t *testing.T) {
 	assert.NoError(err)
 	defer os.RemoveAll(rootfs)
 
-	fs := NewFileSystemStore(rootfs)
+	fs, err := NewFileSystemStore(rootfs)
+	assert.NoError(err)
 	content, err := ioutil.ReadFile("./pistage.test.yml")
 	assert.NoError(err)
 

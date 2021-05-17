@@ -18,7 +18,7 @@ func main() {
 		DefaultJobExecuteTimeout: 1200,
 		EruAddress:               "10.22.12.87:5001",
 		StagerWorkers:            5,
-		FileSystemStoreRoot:      "phistage",
+		FileSystemStoreRoot:      "phistagefsstorage",
 	}
 
 	fs, err := filesystem.NewFileSystemStore(config.FileSystemStoreRoot)
@@ -29,13 +29,9 @@ func main() {
 	if err != nil {
 		return
 	}
-	executors.RegisterExecutorProvider(eruProvider.GetName(), eruProvider)
+	executors.RegisterExecutorProvider(eruProvider)
 
-	s := stager.NewStager(config)
-	if err != nil {
-		return
-	}
-
+	s := stager.NewStager(fs, config)
 	s.Start()
 
 	go func() {

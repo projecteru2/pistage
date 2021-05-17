@@ -2,7 +2,9 @@ package executors
 
 import (
 	"context"
+	"io"
 
+	"github.com/pkg/errors"
 	"github.com/projecteru2/phistage/common"
 )
 
@@ -34,16 +36,19 @@ type ExecutorProvider interface {
 	GetName() string
 	// GetJobExecutor returns a JobExecutor with the given job and phistage,
 	// all job executors in use should be generated from this method.
-	GetJobExecutor(job *common.Job, phistage *common.Phistage) (JobExecutor, error)
+	GetJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer) (JobExecutor, error)
 }
 
 var executorProviders = make(map[string]ExecutorProvider)
 
-// RegisterExecutorProvider registers the executor provider with given name.
+// ErrorExecuteProviderNotFound is returned when fail to find executor provider
+var ErrorExecuteProviderNotFound = errors.New("ExecutorProvider not found")
+
+// RegisterExecutorProvider registers the executor provider with its name.
 // Executor Providers with the same name can be registered for multiple times,
 // latter registration will override former ones.
-func RegisterExecutorProvider(name string, ep ExecutorProvider) {
-	executorProviders[name] = ep
+func RegisterExecutorProvider(ep ExecutorProvider) {
+	executorProviders[ep.GetName()] = ep
 }
 
 // GetExecutorProvider gets executor provider by the given name.

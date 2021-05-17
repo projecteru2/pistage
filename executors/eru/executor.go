@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/helpers/command"
-	"github.com/projecteru2/phistage/store"
-
 	"github.com/pkg/errors"
 	corecluster "github.com/projecteru2/core/cluster"
 	corepb "github.com/projecteru2/core/rpc/gen"
+
+	"github.com/projecteru2/phistage/common"
+	"github.com/projecteru2/phistage/helpers/command"
+	"github.com/projecteru2/phistage/store"
 )
 
 const (
@@ -28,22 +28,24 @@ var ErrExecutionError = errors.New("Execution error")
 
 type EruJobExecutor struct {
 	eru      corepb.CoreRPCClient
+	store    store.Store
 	job      *common.Job
 	phistage *common.Phistage
-	store    store.Store
 
+	output         io.Writer
 	workloadID     string
 	jobEnvironment map[string]string
 }
 
 // NewEruJobExecutor creates an ERU executor for this job.
 // Since job needs to know its context, phistage is assigned too.
-func NewEruJobExecutor(job *common.Job, phistage *common.Phistage, eru corepb.CoreRPCClient, store store.Store) (*EruJobExecutor, error) {
+func NewEruJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer, eru corepb.CoreRPCClient, store store.Store) (*EruJobExecutor, error) {
 	return &EruJobExecutor{
 		eru:            eru,
 		store:          store,
 		job:            job,
 		phistage:       phistage,
+		output:         output,
 		jobEnvironment: phistage.Environment,
 	}, nil
 }
@@ -85,11 +87,10 @@ func (e *EruJobExecutor) prepareJobRuntime(ctx context.Context) error {
 	go func() {
 		for {
 			_, err := lambda.Recv()
-			if err == io.EOF {
-				break
-			}
 			if err != nil {
-				fmt.Println(err)
+				// since we don't really care the ouput,
+				// just break when hit and error.
+				break
 			}
 		}
 	}()
@@ -135,8 +136,6 @@ func (e *EruJobExecutor) prepareFileContext(ctx context.Context) error {
 
 // Execute will execute all steps within this job one by one
 func (e *EruJobExecutor) Execute(ctx context.Context) error {
-	fmt.Printf("========= %s =========\n", e.job.Name)
-	defer fmt.Printf("========= %s =========\n", e.job.Name)
 	for _, step := range e.job.Steps {
 		if err := e.executeStep(ctx, step); err != nil {
 			return err
@@ -165,6 +164,10 @@ func (e *EruJobExecutor) replaceStepWithUses(ctx context.Context, step *common.S
 		OnError:     uses.OnError,
 		Environment: command.MergeVariables(uses.Environment, step.Environment),
 		With:        command.MergeVariables(uses.With, step.With),
+	}
+	// in case name of this step is empty
+	if s.Name == "" {
+		s.Name = uses.Name
 	}
 	return s, nil
 }
@@ -236,7 +239,6 @@ func (e *EruJobExecutor) executeCommand(ctx context.Context, cmd string, args, e
 
 		data := string(message.Data)
 		if strings.HasPrefix(data, exitMessagePrefix) {
-			fmt.Println("[step finished]")
 			exitcode, err := strconv.Atoi(strings.TrimPrefix(data, exitMessagePrefix))
 			if err != nil {
 				return err
@@ -245,8 +247,9 @@ func (e *EruJobExecutor) executeCommand(ctx context.Context, cmd string, args, e
 				return errors.WithMessagef(ErrExecutionError, "exitcode: %d", exitcode)
 			}
 		} else {
-			// log trace
-			fmt.Print(data)
+			if _, err := io.WriteString(e.output, data); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

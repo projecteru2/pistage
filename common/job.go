@@ -1,5 +1,10 @@
 package common
 
+import (
+	"io"
+	"time"
+)
+
 type Job struct {
 	Name        string            `yaml:"name" json:"name"`
 	Image       string            `yaml:"image" json:"image"`
@@ -29,10 +34,28 @@ type Step struct {
 	Environment map[string]string `yaml:"env" json:"env"`
 }
 
+type JobRunStatus string
+
+var (
+	JobRunStatusPending  JobRunStatus = "pending"
+	JobRunStatusRunning  JobRunStatus = "running"
+	JobRunStatusFinished JobRunStatus = "finished"
+	JobRunStatusCanceled JobRunStatus = "canceled"
+)
+
 type Run struct {
-	ID       string `json:"id"`
-	Phistage string `json:"phistage"`
-	Job      string `json:"job"`
-	Output   string `json:"output"`
-	Status   string `json:"status"`
+	ID       string    `json:"id"`
+	Phistage string    `json:"phistage"`
+	Start    time.Time `json:"start"`
+	End      time.Time `json:"end"`
+}
+
+type JobRun struct {
+	ID        string        `json:"id"`
+	Phistage  string        `json:"phistage"`
+	Job       string        `json:"job"`
+	Status    JobRunStatus  `json:"status"`
+	Start     time.Time     `json:"start"`
+	End       time.Time     `json:"end"`
+	LogTracer io.ReadWriter `json:"-"`
 }

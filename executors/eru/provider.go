@@ -2,6 +2,7 @@ package eru
 
 import (
 	"context"
+	"io"
 
 	"github.com/projecteru2/phistage/common"
 	"github.com/projecteru2/phistage/executors"
@@ -38,6 +39,6 @@ func (ep *EruJobExecutorProvider) GetName() string {
 	return "eru"
 }
 
-func (ep *EruJobExecutorProvider) GetJobExecutor(job *common.Job, phistage *common.Phistage) (executors.JobExecutor, error) {
-	return NewEruJobExecutor(job, phistage, ep.eru, ep.store)
+func (ep *EruJobExecutorProvider) GetJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer) (executors.JobExecutor, error) {
+	return NewEruJobExecutor(job, phistage, output, ep.eru, ep.store)
 }

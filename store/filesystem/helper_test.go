@@ -16,7 +16,7 @@ func TestSha1HexDigest(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(s1, "dfe953579d49b555adf16d1823a71a8e463351c2")
 
-	s2, err := Sha1HexDigestForBytes([]byte{'t', 'o', 'n', 'i', 'c'})
+	s2, err := Sha1HexDigest([]byte{'t', 'o', 'n', 'i', 'c'})
 	assert.NoError(err)
 	assert.Equal(s2, "dfe953579d49b555adf16d1823a71a8e463351c2")
 }
