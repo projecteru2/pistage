@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	varsRe = regexp.MustCompile("(?U){{\\s*(\\$env|\\$vars).*}}")
+	varsRe = regexp.MustCompile(`(?U){{\s*(\$env|\$vars).*}}`)
 
 	phistageEnvVarName  = "__phistage_env__"
 	phistageVarsVarName = "__phistage_vars__"

@@ -57,6 +57,7 @@ func (e *EruFileCollector) Collect(ctx context.Context, workloadID string, files
 
 	wg.Add(1)
 	go func() {
+		var message *corepb.CopyMessage
 		defer func() {
 			for _, writer := range filewriters {
 				writer.Close()
@@ -64,7 +65,7 @@ func (e *EruFileCollector) Collect(ctx context.Context, workloadID string, files
 			wg.Done()
 		}()
 		for {
-			message, err := resp.Recv()
+			message, err = resp.Recv()
 			if err == io.EOF {
 				break
 			}

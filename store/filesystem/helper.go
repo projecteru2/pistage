@@ -13,14 +13,14 @@ var ErrorBadContentType = errors.New("Content should be either string or []byte"
 
 func Sha1HexDigest(content interface{}) (string, error) {
 	h := sha1.New()
-	switch content.(type) {
+	switch v := content.(type) {
 	case string:
-		_, err := io.WriteString(h, content.(string))
+		_, err := io.WriteString(h, v)
 		if err != nil {
 			return "", err
 		}
 	case []byte:
-		_, err := h.Write(content.([]byte))
+		_, err := h.Write(v)
 		if err != nil {
 			return "", err
 		}
@@ -35,13 +35,13 @@ func overrideFile(path string, content interface{}) error {
 	if err != nil {
 		return err
 	}
-	switch content.(type) {
+	switch v := content.(type) {
 	case string:
-		if _, err := f.WriteString(content.(string)); err != nil {
+		if _, err := f.WriteString(v); err != nil {
 			return err
 		}
 	case []byte:
-		if _, err := f.Write(content.([]byte)); err != nil {
+		if _, err := f.Write(v); err != nil {
 			return err
 		}
 	default:
@@ -58,13 +58,13 @@ func writeIfNotExist(path string, content interface{}) error {
 		}
 		return err
 	}
-	switch content.(type) {
+	switch v := content.(type) {
 	case []byte:
-		if _, err := f.Write(content.([]byte)); err != nil {
+		if _, err := f.Write(v); err != nil {
 			return err
 		}
 	case string:
-		if _, err := f.WriteString(content.(string)); err != nil {
+		if _, err := f.WriteString(v); err != nil {
 			return err
 		}
 	default:

@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	corecluster "github.com/projecteru2/core/cluster"
 	corepb "github.com/projecteru2/core/rpc/gen"
+	"github.com/sirupsen/logrus"
 
 	"github.com/projecteru2/phistage/common"
 	"github.com/projecteru2/phistage/helpers/command"
@@ -192,7 +193,9 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 			return
 		}
 		for _, onError := range step.OnError {
-			e.executeCommand(ctx, onError, step.With, environment, nil)
+			if err := e.executeCommand(ctx, onError, step.With, environment, nil); err != nil {
+				logrus.WithField("step", step.Name).WithError(err).Errorf("[EruJobExecutor] error when executing on_error")
+			}
 		}
 	}()
 
@@ -201,7 +204,6 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
