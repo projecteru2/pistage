@@ -179,9 +179,17 @@ func (e *EruJobExecutor) replaceStepWithUses(ctx context.Context, step *common.S
 // Then execute the command, retrieve the output, the execution will stop if any error occurs.
 // It then retries to execute the OnError commands, also with the arguments and environments.
 func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) error {
-	var err error
+	var (
+		err  error
+		vars map[string]string
+	)
 
 	step, err = e.replaceStepWithUses(ctx, step)
+	if err != nil {
+		return err
+	}
+
+	vars, err = e.store.GetVariablesForPhistage(ctx, e.phistage.Name)
 	if err != nil {
 		return err
 	}
@@ -193,14 +201,14 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 			return
 		}
 		for _, onError := range step.OnError {
-			if err := e.executeCommand(ctx, onError, step.With, environment, nil); err != nil {
+			if err := e.executeCommand(ctx, onError, step.With, environment, vars); err != nil {
 				logrus.WithField("step", step.Name).WithError(err).Errorf("[EruJobExecutor] error when executing on_error")
 			}
 		}
 	}()
 
 	for _, run := range step.Run {
-		err = e.executeCommand(ctx, run, step.With, environment, nil)
+		err = e.executeCommand(ctx, run, step.With, environment, vars)
 		if err != nil {
 			return err
 		}
@@ -209,7 +217,7 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 }
 
 // executeCommand executes cmd with given arguments, environments and variables.
-// use args, envs, and reserved vars to build the cmd, currently reserved vars is empty.
+// use args, envs, and reserved vars to build the cmd.
 // This method should be sync.
 func (e *EruJobExecutor) executeCommand(ctx context.Context, cmd string, args, env, vars map[string]string) error {
 	cmd, err := command.RenderCommand(cmd, args, env, vars)

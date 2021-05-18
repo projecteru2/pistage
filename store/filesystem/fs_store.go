@@ -407,3 +407,58 @@ func (fs *FileSystemStore) GetRegisteredStep(ctx context.Context, name string) (
 	}
 	return step, nil
 }
+
+// ${root}/phistage/${sha1 of phistage name}/vars
+func (fs *FileSystemStore) SetVariablesForPhistage(ctx context.Context, name string, vars map[string]string) error {
+	phistage, err := fs.GetPhistage(ctx, name)
+	if err != nil {
+		return err
+	}
+
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
+
+	sha1OfName, err := Sha1HexDigest(phistage.Name)
+	if err != nil {
+		return err
+	}
+
+	varsPath := filepath.Join(fs.root, "phistage", sha1OfName, "vars")
+	content, err := json.Marshal(vars)
+	if err != nil {
+		return err
+	}
+	return overrideFile(varsPath, content)
+}
+
+// ${root}/phistage/${sha1 of phistage name}/vars
+func (fs *FileSystemStore) GetVariablesForPhistage(ctx context.Context, name string) (map[string]string, error) {
+	phistage, err := fs.GetPhistage(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
+
+	sha1OfName, err := Sha1HexDigest(phistage.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	varsPath := filepath.Join(fs.root, "phistage", sha1OfName, "vars")
+	content, err := ioutil.ReadFile(varsPath)
+	if err != nil {
+		// if not exist, we return empty vars
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	vars := map[string]string{}
+	if err := json.Unmarshal(content, &vars); err != nil {
+		return nil, err
+	}
+	return vars, nil
+}

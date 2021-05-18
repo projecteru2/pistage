@@ -22,7 +22,7 @@ type Stager struct {
 	wg     sync.WaitGroup
 }
 
-func NewStager(store store.Store, config *common.Config) *Stager {
+func NewStager(config *common.Config, store store.Store) *Stager {
 	return &Stager{
 		config: config,
 		stages: make(chan *common.Phistage),
@@ -109,8 +109,6 @@ func (s *Stager) runWithGraph(phistage *common.Phistage) error {
 			logger.WithError(err).Errorf("[Stager runWithGraph] error occurred, skip following jobs")
 			return err
 		}
-
-		// need to check this run's status
 	}
 	return nil
 }
@@ -119,10 +117,9 @@ func (s *Stager) runOneJob(phistage *common.Phistage, job *common.Job, run *comm
 	logger := logrus.WithFields(logrus.Fields{"phistage": phistage.Name, "executor": phistage.Executor, "job": job.Name})
 
 	jobRun := &common.JobRun{
-		Phistage:  phistage.Name,
-		Job:       job.Name,
-		Status:    common.JobRunStatusPending,
-		LogTracer: common.NewLogTracer(),
+		Phistage: phistage.Name,
+		Job:      job.Name,
+		Status:   common.JobRunStatusPending,
 	}
 	if err := s.store.CreateJobRun(context.TODO(), run, jobRun); err != nil {
 		logger.WithError(err).Error("[Stager runOneJob] fail to create JobRun")
@@ -138,6 +135,7 @@ func (s *Stager) runOneJob(phistage *common.Phistage, job *common.Job, run *comm
 	// start JobRun
 	jobRun.Start = time.Now()
 	jobRun.Status = common.JobRunStatusRunning
+	jobRun.LogTracer = common.NewLogTracer(run.ID)
 	if err := s.store.UpdateJobRun(context.TODO(), run, jobRun); err != nil {
 		logger.WithError(err).Errorf("[Stager runOneJob] error update JobRun")
 		return err
