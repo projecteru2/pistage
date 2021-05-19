@@ -1,0 +1,132 @@
+syntax = "proto3";
+package proto;
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/projecteru2/phistage/apiserver/grpc/proto";
+
+service Phistage {
+  rpc SetVariables(SetVariablesRequest) returns (SetVariablesReply) {};
+  rpc GetVariables(GetVariablesRequest) returns (GetVariablesReply) {};
+
+  rpc ApplyOneway(ApplyPhistageRequest) returns (ApplyPhistageOnewayReply) {};
+  rpc ApplyStream(ApplyPhistageRequest) returns (stream ApplyPhistageStreamReply) {};
+  rpc GetPhistage(GetPhistageRequest) returns (GetPhistageReply) {};
+  rpc DeletePhistage(DeletePhistageRequest) returns (DeletePhistageReply) {};
+
+  rpc GetRunsByPhistage(GetRunsByPhistageRequest) returns (GetRunsByPhistageReply) {};
+  rpc GetJobRunsByPhistage(GetJobRunsByPhistageRequest) returns (GetJobRunsByPhistageReply) {};
+
+  rpc RegisterJob(RegisterJobRequest) returns (RegisterJobReply) {};
+  rpc RegisterStep(RegisterStepRequest) returns (RegisterStepReply) {};
+}
+
+message SetVariablesRequest {
+  string name = 1;
+  map<string, string> variables = 2;
+}
+
+message SetVariablesReply {
+  string name = 1;
+  bool success = 2;
+}
+
+message GetVariablesRequest {
+  string name = 1;
+}
+
+message GetVariablesReply {
+  string name = 1;
+  map<string, string> variables = 2;
+}
+
+message ApplyPhistageRequest {
+  string content = 1;
+}
+
+message ApplyPhistageOnewayReply {
+  string name = 1;
+  bool success = 2;
+}
+
+message ApplyPhistageStreamReply {
+  string name = 1;
+  int64 logtype = 2;
+  string log = 3;
+}
+
+message GetPhistageRequest {
+  string name = 1;
+}
+
+message GetPhistageReply {
+  string name = 1;
+  string content = 2;
+}
+
+message DeletePhistageRequest {
+  string name = 1;
+}
+
+message DeletePhistageReply {
+  string name = 1;
+  bool success = 2;
+}
+
+message GetRunsByPhistageRequest {
+  string name = 1;
+  int64 offset = 2;
+  int64 limit = 3;
+}
+
+message GetRunsByPhistageReply {
+  string name = 1;
+  repeated Run runs = 2;
+}
+
+message GetJobRunsByPhistageRequest {
+  string name = 1;
+  string runID = 2;
+  int64 offset = 3;
+  int64 limit = 4;
+}
+
+message GetJobRunsByPhistageReply {
+  string name = 1;
+  string runID = 2;
+  repeated JobRun jobRuns = 3;
+}
+
+message RegisterJobRequest {
+  string content = 1;
+}
+
+message RegisterJobReply {
+  string name = 1;
+  bool success = 2;
+}
+
+message RegisterStepRequest {
+  string content = 1;
+}
+
+message RegisterStepReply {
+  string name = 1;
+  bool success = 2;
+}
+
+message Run {
+  string id = 1;
+  string phistage = 2;
+  google.protobuf.Timestamp start = 3;
+  google.protobuf.Timestamp end = 4;
+}
+
+message JobRun {
+  string id = 1;
+  string phistage = 2;
+  string job = 3;
+  string status = 4;
+  google.protobuf.Timestamp start = 5;
+  google.protobuf.Timestamp end = 6;
+  string log = 7;
+}

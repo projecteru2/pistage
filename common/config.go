@@ -8,26 +8,58 @@ import (
 
 // Config is global config for phistage
 type Config struct {
-	// DefaultJobExecutor is used for jobs who doesn't declare what
-	// executor to use, default value will be eru.
-	DefaultJobExecutor string `yaml:"default_job_executor"`
-	// DefaultJobExecuteTimeout is the timeout for the entire job,
-	// including all steps with the job.
-	DefaultJobExecuteTimeout int `yaml:"default_job_execute_timeout"`
+	Bind          string `yaml:"bind" default:":9736"`
+	StagerWorkers int    `yaml:"stager_workers" default:"10"`
 
-	// Number of stager workers
-	StagerWorkers int `yaml:"stager_workers"`
+	DefaultJobExecutor       string `yaml:"default_job_executor" default:"eru"`
+	DefaultJobExecuteTimeout int    `yaml:"default_job_execute_timeout" default:"1200"`
 
-	// Eru config
-	EruAddress  string `yaml:"eru_address"`
-	EruUsername string `yaml:"eru_username"`
-	EruPassword string `yaml:"eru_password"`
+	Eru     EruConfig     `yaml:"eru"`
+	Storage StorageConfig `yaml:"storage"`
+}
 
-	// Storage type
-	Storage string `yaml:"storage"`
+type EruConfig struct {
+	Address           string `yaml:"address"`
+	Username          string `yaml:"username"`
+	Password          string `yaml:"password"`
+	DefaultPrivileged bool   `yaml:"default_privileged" default:"true"`
+	DefaultWorkingDir string `yaml:"default_working_dir" default:"/phistage"`
+	DefaultPodname    string `yaml:"default_pod" default:"ci"`
+	DefaultJobImage   string `yaml:"default_job_image"`
+	DefaultUser       string `yaml:"default_user" default:"root"`
+	DefaultNetwork    string `yaml:"default_network" default:"host"`
+}
 
-	// FileSystem storage config
+type StorageConfig struct {
+	Type                string `yaml:"type"`
 	FileSystemStoreRoot string `yaml:"filesystem_store_root"`
+}
+
+func (c *Config) initDefault() {
+	if c.Bind == "" {
+		c.Bind = ":9736"
+	}
+	if c.StagerWorkers == 0 {
+		c.StagerWorkers = 10
+	}
+	if c.DefaultJobExecutor == "" {
+		c.DefaultJobExecutor = "eru"
+	}
+	if c.DefaultJobExecuteTimeout == 0 {
+		c.DefaultJobExecuteTimeout = 1200
+	}
+	if c.Eru.DefaultWorkingDir == "" {
+		c.Eru.DefaultWorkingDir = "/phistage"
+	}
+	if c.Eru.DefaultPodname == "" {
+		c.Eru.DefaultPodname = "ci"
+	}
+	if c.Eru.DefaultUser == "" {
+		c.Eru.DefaultUser = "root"
+	}
+	if c.Eru.DefaultNetwork == "" {
+		c.Eru.DefaultNetwork = "host"
+	}
 }
 
 func LoadConfigFromFile(path string) (*Config, error) {
@@ -40,5 +72,6 @@ func LoadConfigFromFile(path string) (*Config, error) {
 	if err := yaml.Unmarshal(content, config); err != nil {
 		return nil, err
 	}
+	config.initDefault()
 	return config, nil
 }

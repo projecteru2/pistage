@@ -18,18 +18,17 @@ import (
 	"github.com/projecteru2/phistage/store"
 )
 
-const (
-	// stupid eru-core doesn't export this
-	// BTW I really didn't think this can be a string with a space as suffix...
-	exitMessagePrefix = "[exitcode] "
-	workingDir        = "/phistage"
-)
+// stupid eru-core doesn't export this
+// BTW I really didn't think this can be a string with a space as suffix...
+const exitMessagePrefix = "[exitcode] "
 
 var ErrExecutionError = errors.New("Execution error")
 
 type EruJobExecutor struct {
-	eru      corepb.CoreRPCClient
-	store    store.Store
+	eru    corepb.CoreRPCClient
+	store  store.Store
+	config *common.Config
+
 	job      *common.Job
 	phistage *common.Phistage
 
@@ -40,10 +39,11 @@ type EruJobExecutor struct {
 
 // NewEruJobExecutor creates an ERU executor for this job.
 // Since job needs to know its context, phistage is assigned too.
-func NewEruJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer, eru corepb.CoreRPCClient, store store.Store) (*EruJobExecutor, error) {
+func NewEruJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer, eru corepb.CoreRPCClient, store store.Store, config *common.Config) (*EruJobExecutor, error) {
 	return &EruJobExecutor{
 		eru:            eru,
 		store:          store,
+		config:         config,
 		job:            job,
 		phistage:       phistage,
 		output:         output,
@@ -99,23 +99,28 @@ func (e *EruJobExecutor) prepareJobRuntime(ctx context.Context) error {
 }
 
 func (e *EruJobExecutor) buildEruLambdaOptions() *corepb.RunAndWaitOptions {
+	jobImage := e.job.Image
+	if jobImage == "" {
+		jobImage = e.config.Eru.DefaultJobImage
+	}
+
 	return &corepb.RunAndWaitOptions{
 		DeployOptions: &corepb.DeployOptions{
 			Name: e.job.Name,
 			Entrypoint: &corepb.EntrypointOptions{
 				Name:       e.job.Name,
 				Commands:   command.EmptyWorkloadCommand(e.job.Timeout),
-				Privileged: true,
-				Dir:        workingDir,
+				Privileged: e.config.Eru.DefaultPrivileged,
+				Dir:        e.config.Eru.DefaultWorkingDir,
 			},
-			Podname:        "ci",
+			Podname:        e.config.Eru.DefaultPodname,
 			Image:          e.job.Image,
 			Count:          1,
 			Env:            command.ToEnvironmentList(e.jobEnvironment),
-			Networks:       map[string]string{"host": ""},
+			Networks:       map[string]string{e.config.Eru.DefaultNetwork: ""},
 			DeployStrategy: corepb.DeployOptions_AUTO,
 			ResourceOpts:   &corepb.ResourceOptions{},
-			User:           "root",
+			User:           e.config.Eru.DefaultUser,
 		},
 		Async: false,
 	}
@@ -273,7 +278,7 @@ func (e *EruJobExecutor) beforeCleanup(ctx context.Context) error {
 
 	var files []string
 	for _, file := range e.job.Files {
-		files = append(files, filepath.Join(workingDir, file))
+		files = append(files, filepath.Join(e.config.Eru.DefaultWorkingDir, file))
 	}
 
 	fc := NewEruFileCollector(e.eru)

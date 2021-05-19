@@ -14,7 +14,7 @@ type Phistage struct {
 	Executor    string            `yaml:"executor" json:"executor"`
 }
 
-// init set name to all jobs
+// init set name to all jobs.
 func (p *Phistage) init() {
 	for jobName, job := range p.Jobs {
 		job.Name = jobName
@@ -61,7 +61,7 @@ func (p *Phistage) JobDependencies() ([][]*Job, error) {
 	return jobs, nil
 }
 
-// GetJobs gets job list by the given names
+// GetJobs gets job list by the given names.
 func (p *Phistage) GetJobs(names []string) []*Job {
 	var jobs []*Job
 	for _, name := range names {
@@ -74,7 +74,7 @@ func (p *Phistage) GetJobs(names []string) []*Job {
 	return jobs
 }
 
-// FromSpec build a Phistage from a spec file
+// FromSpec build a Phistage from a spec file.
 func FromSpec(content []byte) (*Phistage, error) {
 	p := &Phistage{}
 	err := yaml.Unmarshal(content, p)
@@ -84,4 +84,9 @@ func FromSpec(content []byte) (*Phistage, error) {
 
 	p.init()
 	return p, nil
+}
+
+// MarshalPhistage marshals phistage back into yaml format.
+func MarshalPhistage(phistage *Phistage) ([]byte, error) {
+	return yaml.Marshal(phistage)
 }

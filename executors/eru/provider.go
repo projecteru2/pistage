@@ -20,9 +20,9 @@ type EruJobExecutorProvider struct {
 }
 
 func NewEruJobExecutorProvider(config *common.Config, store store.Store) (*EruJobExecutorProvider, error) {
-	c, err := coreclient.NewClient(context.TODO(), config.EruAddress, coretypes.AuthConfig{
-		Username: config.EruUsername,
-		Password: config.EruPassword,
+	c, err := coreclient.NewClient(context.TODO(), config.Eru.Address, coretypes.AuthConfig{
+		Username: config.Eru.Username,
+		Password: config.Eru.Password,
 	})
 	if err != nil {
 		return nil, err
@@ -40,5 +40,5 @@ func (ep *EruJobExecutorProvider) GetName() string {
 }
 
 func (ep *EruJobExecutorProvider) GetJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer) (executors.JobExecutor, error) {
-	return NewEruJobExecutor(job, phistage, output, ep.eru, ep.store)
+	return NewEruJobExecutor(job, phistage, output, ep.eru, ep.store, ep.config)
 }

@@ -33,32 +33,36 @@ func NewStager(config *common.Config, store store.Store) *Stager {
 }
 
 func (s *Stager) Start() {
-	for i := 0; i < s.config.StagerWorkers; i++ {
+	for id := 0; id < s.config.StagerWorkers; id++ {
 		s.wg.Add(1)
-		go func() {
+		go func(id int) {
 			defer s.wg.Done()
-			s.processStages()
-		}()
+			s.runner(id)
+		}(id)
 	}
 }
 
 func (s *Stager) Stop() {
+	logrus.Info("[Stager] exiting...")
 	close(s.stop)
 	s.wg.Wait()
+	logrus.Info("[Stager] gracefully stopped")
 }
 
 func (s *Stager) Add(phistage *common.Phistage) {
 	s.stages <- phistage
 }
 
-func (s *Stager) processStages() {
+func (s *Stager) runner(id int) {
+	logrus.WithField("runner id", id).Info("[Stager] runner started")
 	for {
 		select {
 		case <-s.stop:
+			logrus.WithField("runner id", id).Info("[Stager] runner stopped")
 			return
 		case phistage := <-s.stages:
 			if err := s.runWithGraph(phistage); err != nil {
-				logrus.WithField("phistage", phistage.Name).WithError(err).Errorf("[Stager process] error when running a phistage")
+				logrus.WithField("phistage", phistage.Name).WithError(err).Errorf("[Stager runner] error when running a phistage")
 			}
 			runtime.GC()
 		}
@@ -66,7 +70,7 @@ func (s *Stager) processStages() {
 }
 
 func (s *Stager) runWithGraph(phistage *common.Phistage) error {
-	logger := logrus.WithFields(logrus.Fields{"phistage": phistage.Name})
+	logger := logrus.WithField("phistage", phistage.Name)
 
 	if err := s.store.CreatePhistage(context.TODO(), phistage); err != nil {
 		logger.WithError(err).Error("[Stager runWithGraph] fail to create Phistage")

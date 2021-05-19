@@ -3,6 +3,8 @@ package common
 import (
 	"io"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Job struct {
@@ -25,6 +27,15 @@ func (j *Job) GetFileCollector() FileCollector {
 	return j.fileCollector
 }
 
+func LoadJob(content []byte) (*Job, error) {
+	j := &Job{}
+	err := yaml.Unmarshal(content, j)
+	if err != nil {
+		return nil, err
+	}
+	return j, nil
+}
+
 type Step struct {
 	Name        string            `yaml:"name" json:"name"`
 	Uses        string            `yaml:"uses" json:"uses"`
@@ -32,6 +43,15 @@ type Step struct {
 	Run         []string          `yaml:"run" json:"run"`
 	OnError     []string          `yaml:"on_error" json:"on_error"`
 	Environment map[string]string `yaml:"env" json:"env"`
+}
+
+func LoadStep(content []byte) (*Step, error) {
+	s := &Step{}
+	err := yaml.Unmarshal(content, s)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 type JobRunStatus string
