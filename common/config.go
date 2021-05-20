@@ -8,8 +8,8 @@ import (
 
 // Config is global config for phistage
 type Config struct {
-	Bind          string `yaml:"bind" default:":9736"`
-	StagerWorkers int    `yaml:"stager_workers" default:"10"`
+	Bind               string `yaml:"bind" default:":9736"`
+	StageServerWorkers int    `yaml:"stage_server_workers" default:"10"`
 
 	DefaultJobExecutor       string `yaml:"default_job_executor" default:"eru"`
 	DefaultJobExecuteTimeout int    `yaml:"default_job_execute_timeout" default:"1200"`
@@ -39,8 +39,8 @@ func (c *Config) initDefault() {
 	if c.Bind == "" {
 		c.Bind = ":9736"
 	}
-	if c.StagerWorkers == 0 {
-		c.StagerWorkers = 10
+	if c.StageServerWorkers == 0 {
+		c.StageServerWorkers = 10
 	}
 	if c.DefaultJobExecutor == "" {
 		c.DefaultJobExecutor = "eru"

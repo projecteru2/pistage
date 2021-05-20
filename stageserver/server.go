@@ -33,7 +33,7 @@ func NewStager(config *common.Config, store store.Store) *StageServer {
 }
 
 func (s *StageServer) Start() {
-	for id := 0; id < s.config.StagerWorkers; id++ {
+	for id := 0; id < s.config.StageServerWorkers; id++ {
 		s.wg.Add(1)
 		go func(id int) {
 			defer s.wg.Done()
