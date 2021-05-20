@@ -6,7 +6,7 @@ import (
 	"github.com/projecteru2/phistage/apiserver/grpc"
 	"github.com/projecteru2/phistage/cmd/phistage/helpers"
 	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/stager"
+	"github.com/projecteru2/phistage/stageserver"
 
 	"github.com/sethvargo/go-signalcontext"
 	"github.com/sirupsen/logrus"
@@ -40,7 +40,7 @@ func StartPhistage(c *cli.Context) error {
 	ctx, cancel := signalcontext.OnInterrupt()
 	defer cancel()
 
-	s := stager.NewStager(config, store)
+	s := stageserver.NewStager(config, store)
 	s.Start()
 	logrus.Info("[Stager] started")
 

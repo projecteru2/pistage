@@ -6,7 +6,7 @@ import (
 
 	"github.com/projecteru2/phistage/apiserver/grpc/proto"
 	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/stager"
+	"github.com/projecteru2/phistage/stageserver"
 	"github.com/projecteru2/phistage/store"
 
 	"github.com/sirupsen/logrus"
@@ -15,12 +15,12 @@ import (
 
 type GRPCServer struct {
 	store  store.Store
-	stager *stager.Stager
+	stager *stageserver.StageServer
 
 	server *grpc.Server
 }
 
-func NewGRPCServer(store store.Store, stager *stager.Stager) *GRPCServer {
+func NewGRPCServer(store store.Store, stager *stageserver.StageServer) *GRPCServer {
 	return &GRPCServer{
 		store:  store,
 		stager: stager,

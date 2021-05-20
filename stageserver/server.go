@@ -1,4 +1,4 @@
-package stager
+package stageserver
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"github.com/projecteru2/phistage/store"
 )
 
-type Stager struct {
+type StageServer struct {
 	config *common.Config
 	stages chan *common.Phistage
 	stop   chan struct{}
@@ -22,8 +22,8 @@ type Stager struct {
 	wg     sync.WaitGroup
 }
 
-func NewStager(config *common.Config, store store.Store) *Stager {
-	return &Stager{
+func NewStager(config *common.Config, store store.Store) *StageServer {
+	return &StageServer{
 		config: config,
 		stages: make(chan *common.Phistage),
 		stop:   make(chan struct{}),
@@ -32,7 +32,7 @@ func NewStager(config *common.Config, store store.Store) *Stager {
 	}
 }
 
-func (s *Stager) Start() {
+func (s *StageServer) Start() {
 	for id := 0; id < s.config.StagerWorkers; id++ {
 		s.wg.Add(1)
 		go func(id int) {
@@ -42,18 +42,18 @@ func (s *Stager) Start() {
 	}
 }
 
-func (s *Stager) Stop() {
+func (s *StageServer) Stop() {
 	logrus.Info("[Stager] exiting...")
 	close(s.stop)
 	s.wg.Wait()
 	logrus.Info("[Stager] gracefully stopped")
 }
 
-func (s *Stager) Add(phistage *common.Phistage) {
+func (s *StageServer) Add(phistage *common.Phistage) {
 	s.stages <- phistage
 }
 
-func (s *Stager) runner(id int) {
+func (s *StageServer) runner(id int) {
 	logrus.WithField("runner id", id).Info("[Stager] runner started")
 	for {
 		select {
@@ -69,7 +69,7 @@ func (s *Stager) runner(id int) {
 	}
 }
 
-func (s *Stager) runWithGraph(phistage *common.Phistage) error {
+func (s *StageServer) runWithGraph(phistage *common.Phistage) error {
 	logger := logrus.WithField("phistage", phistage.Name)
 
 	if err := s.store.CreatePhistage(context.TODO(), phistage); err != nil {
@@ -117,7 +117,7 @@ func (s *Stager) runWithGraph(phistage *common.Phistage) error {
 	return nil
 }
 
-func (s *Stager) runOneJob(phistage *common.Phistage, job *common.Job, run *common.Run) error {
+func (s *StageServer) runOneJob(phistage *common.Phistage, job *common.Job, run *common.Run) error {
 	logger := logrus.WithFields(logrus.Fields{"phistage": phistage.Name, "executor": phistage.Executor, "job": job.Name})
 
 	jobRun := &common.JobRun{
