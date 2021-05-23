@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/projecteru2/phistage/apiserver/grpc/proto"
+	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
 
-func newClient(ctx context.Context, addr string) (proto.PhistageClient, error) {
-	connection, err := dial(ctx, addr)
+func newClient(c *cli.Context) (proto.PhistageClient, error) {
+	connection, err := dial(c.Context, c.String("host"))
 	if err != nil {
 		return nil, err
 	}

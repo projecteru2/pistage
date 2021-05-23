@@ -2,6 +2,7 @@ package stageserver
 
 import (
 	"context"
+	"io"
 	"runtime"
 	"sync"
 	"time"
@@ -16,7 +17,7 @@ import (
 
 type StageServer struct {
 	config *common.Config
-	stages chan *common.Phistage
+	stages chan *common.PhistageTask
 	stop   chan struct{}
 	store  store.Store
 	wg     sync.WaitGroup
@@ -25,7 +26,7 @@ type StageServer struct {
 func NewStager(config *common.Config, store store.Store) *StageServer {
 	return &StageServer{
 		config: config,
-		stages: make(chan *common.Phistage),
+		stages: make(chan *common.PhistageTask),
 		stop:   make(chan struct{}),
 		store:  store,
 		wg:     sync.WaitGroup{},
@@ -49,8 +50,8 @@ func (s *StageServer) Stop() {
 	logrus.Info("[Stager] gracefully stopped")
 }
 
-func (s *StageServer) Add(phistage *common.Phistage) {
-	s.stages <- phistage
+func (s *StageServer) Add(pt *common.PhistageTask) {
+	s.stages <- pt
 }
 
 func (s *StageServer) runner(id int) {
@@ -60,16 +61,17 @@ func (s *StageServer) runner(id int) {
 		case <-s.stop:
 			logrus.WithField("runner id", id).Info("[Stager] runner stopped")
 			return
-		case phistage := <-s.stages:
-			if err := s.runWithGraph(phistage); err != nil {
-				logrus.WithField("phistage", phistage.Name).WithError(err).Errorf("[Stager runner] error when running a phistage")
+		case pt := <-s.stages:
+			if err := s.runWithGraph(pt); err != nil {
+				logrus.WithField("phistage", pt.Phistage.Name).WithError(err).Errorf("[Stager runner] error when running a phistage")
 			}
 			runtime.GC()
 		}
 	}
 }
 
-func (s *StageServer) runWithGraph(phistage *common.Phistage) error {
+func (s *StageServer) runWithGraph(pt *common.PhistageTask) error {
+	phistage := pt.Phistage
 	logger := logrus.WithField("phistage", phistage.Name)
 
 	if err := s.store.CreatePhistage(context.TODO(), phistage); err != nil {
@@ -104,7 +106,7 @@ func (s *StageServer) runWithGraph(phistage *common.Phistage) error {
 			wg.Add(1)
 			go func(job *common.Job) {
 				defer wg.Done()
-				err = s.runOneJob(phistage, job, run)
+				err = s.runOneJob(phistage, job, run, pt.Output)
 			}(job)
 		}
 		wg.Wait()
@@ -117,7 +119,7 @@ func (s *StageServer) runWithGraph(phistage *common.Phistage) error {
 	return nil
 }
 
-func (s *StageServer) runOneJob(phistage *common.Phistage, job *common.Job, run *common.Run) error {
+func (s *StageServer) runOneJob(phistage *common.Phistage, job *common.Job, run *common.Run, logCollector io.Writer) error {
 	logger := logrus.WithFields(logrus.Fields{"phistage": phistage.Name, "executor": phistage.Executor, "job": job.Name})
 
 	jobRun := &common.JobRun{
@@ -132,14 +134,18 @@ func (s *StageServer) runOneJob(phistage *common.Phistage, job *common.Job, run 
 
 	defer func() {
 		if err := s.store.FinishJobRun(context.TODO(), run, jobRun); err != nil {
-			logger.WithError(err).Errorf("[Stager runOneJob] error update JobRun")
+			logger.WithError(err).Errorf("[Stager runOneJob] error updating JobRun")
+		}
+
+		if err := jobRun.LogTracer.Close(); err != nil {
+			logger.WithError(err).Errorf("[Stager runOneJob] error closing logtracer")
 		}
 	}()
 
 	// start JobRun
 	jobRun.Start = time.Now()
 	jobRun.Status = common.JobRunStatusRunning
-	jobRun.LogTracer = common.NewLogTracer(run.ID)
+	jobRun.LogTracer = common.NewLogTracer(run.ID, logCollector)
 	if err := s.store.UpdateJobRun(context.TODO(), run, jobRun); err != nil {
 		logger.WithError(err).Errorf("[Stager runOneJob] error update JobRun")
 		return err

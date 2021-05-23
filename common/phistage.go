@@ -1,6 +1,8 @@
 package common
 
 import (
+	"io"
+
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
@@ -89,4 +91,11 @@ func FromSpec(content []byte) (*Phistage, error) {
 // MarshalPhistage marshals phistage back into yaml format.
 func MarshalPhistage(phistage *Phistage) ([]byte, error) {
 	return yaml.Marshal(phistage)
+}
+
+// PhistageTask contains a phistage and an output tracing stream.
+// Tracing stream is used to trace this process.
+type PhistageTask struct {
+	Phistage *Phistage
+	Output   io.Writer
 }

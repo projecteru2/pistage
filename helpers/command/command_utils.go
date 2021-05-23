@@ -5,22 +5,28 @@ import (
 	"strings"
 
 	"github.com/flosch/pongo2/v4"
-	"github.com/projecteru2/phistage/helpers/variable"
 )
 
 // RenderCommand renders commandTemplate with the given arguments using Jinja
-func RenderCommand(commandTemplate string, arguments, envs, vars map[string]string) (string, error) {
-	ctmpl := variable.ReplaceVariables(commandTemplate)
-	tmpl, err := pongo2.FromString(ctmpl)
+// "env" and "vars" will be injected into context and render the template,
+// if they are also defined in arguments, arguments will be overridden.
+func RenderCommand(commandTemplate string, arguments, env, vars map[string]string) (string, error) {
+	tmpl, err := pongo2.FromString(commandTemplate)
 	if err != nil {
 		return "", err
 	}
 
-	out, err := tmpl.Execute(variable.BuildTemplateContext(arguments, envs, vars))
+	context := pongo2.Context{}
+	for k, v := range arguments {
+		context[k] = v
+	}
+	context["vars"] = vars
+	context["env"] = env
+
+	out, err := tmpl.Execute(context)
 	if err != nil {
 		return "", err
 	}
-
 	return out, nil
 }
 

@@ -1,7 +1,9 @@
 package grpc
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net"
 
 	"github.com/projecteru2/phistage/apiserver/grpc/proto"
@@ -71,7 +73,9 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPhistageRe
 		return nil, err
 	}
 
-	g.stager.Add(phistage)
+	// use io.Discard to write output to.
+	// or os.DevNull.
+	g.stager.Add(&common.PhistageTask{Phistage: phistage, Output: io.Discard})
 	return &proto.ApplyPhistageOnewayReply{
 		Name:    phistage.Name,
 		Success: err == nil,
@@ -84,8 +88,18 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPhistageRequest, stream proto.P
 		return err
 	}
 
-	g.stager.Add(phistage)
-	// TODO get stream and send them back
+	r, w := io.Pipe()
+	g.stager.Add(&common.PhistageTask{Phistage: phistage, Output: w})
+
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		if err := stream.Send(&proto.ApplyPhistageStreamReply{
+			Name: phistage.Name,
+			Log:  scanner.Text(),
+		}); err != nil {
+			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPhistageStreamReply")
+		}
+	}
 	return nil
 }
 

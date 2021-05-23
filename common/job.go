@@ -71,11 +71,11 @@ type Run struct {
 }
 
 type JobRun struct {
-	ID        string        `json:"id"`
-	Phistage  string        `json:"phistage"`
-	Job       string        `json:"job"`
-	Status    JobRunStatus  `json:"status"`
-	Start     time.Time     `json:"start"`
-	End       time.Time     `json:"end"`
-	LogTracer io.ReadWriter `json:"-"`
+	ID        string             `json:"id"`
+	Phistage  string             `json:"phistage"`
+	Job       string             `json:"job"`
+	Status    JobRunStatus       `json:"status"`
+	Start     time.Time          `json:"start"`
+	End       time.Time          `json:"end"`
+	LogTracer io.ReadWriteCloser `json:"-"`
 }

@@ -20,21 +20,8 @@ func main() {
 		Name:    "phistagecli",
 		Version: version.VERSION,
 		Commands: []*cli.Command{
-			{
-				Name:  "apply",
-				Usage: "Apply a Phistage",
-				Action: func(c *cli.Context) error {
-					return commands.Apply(c)
-				},
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "file",
-						Aliases: []string{"f"},
-						Value:   "pistage.yml",
-						Usage:   "Phistage yaml description file",
-					},
-				},
-			},
+			commands.ApplyCommand(),
+			commands.VariablesCommand(),
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
