@@ -205,27 +205,33 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 		if !errors.Is(err, ErrExecutionError) {
 			return
 		}
-		for _, onError := range step.OnError {
-			if err := e.executeCommand(ctx, onError, step.With, environment, vars); err != nil {
-				logrus.WithField("step", step.Name).WithError(err).Errorf("[EruJobExecutor] error when executing on_error")
-			}
+		if err := e.executeCommands(ctx, step.OnError, step.With, environment, vars); err != nil {
+			logrus.WithField("step", step.Name).WithError(err).Errorf("[EruJobExecutor] error when executing on_error")
 		}
 	}()
 
-	for _, run := range step.Run {
-		err = e.executeCommand(ctx, run, step.With, environment, vars)
+	err = e.executeCommands(ctx, step.Run, step.With, environment, vars)
+	return err
+}
+
+// executeCommands executes cmd with given arguments, environments and variables.
+// use args, envs, and reserved vars to build the cmd.
+// This method should be sync.
+func (e *EruJobExecutor) executeCommands(ctx context.Context, cmds []string, args, env, vars map[string]string) error {
+	if len(cmds) == 0 {
+		return nil
+	}
+
+	var commands []string
+	for _, cmd := range cmds {
+		c, err := command.RenderCommand(cmd, args, env, vars)
 		if err != nil {
 			return err
 		}
+		commands = append(commands, c)
 	}
-	return nil
-}
 
-// executeCommand executes cmd with given arguments, environments and variables.
-// use args, envs, and reserved vars to build the cmd.
-// This method should be sync.
-func (e *EruJobExecutor) executeCommand(ctx context.Context, cmd string, args, env, vars map[string]string) error {
-	cmd, err := command.RenderCommand(cmd, args, env, vars)
+	shell, err := command.RenderShell(commands)
 	if err != nil {
 		return err
 	}
@@ -237,7 +243,7 @@ func (e *EruJobExecutor) executeCommand(ctx context.Context, cmd string, args, e
 
 	if err := exec.Send(&corepb.ExecuteWorkloadOptions{
 		WorkloadId: e.workloadID,
-		Commands:   []string{"/bin/sh", "-c", cmd},
+		Commands:   []string{"/bin/sh", "-c", shell},
 		Envs:       command.ToEnvironmentList(env),
 	}); err != nil {
 		return err
@@ -267,7 +273,7 @@ func (e *EruJobExecutor) executeCommand(ctx context.Context, cmd string, args, e
 			}
 		}
 	}
-	return nil
+	return exec.CloseSend()
 }
 
 // beforeCleanup collects files if any

@@ -22,12 +22,18 @@ func RenderCommand(commandTemplate string, arguments, env, vars map[string]strin
 	}
 	context["vars"] = vars
 	context["env"] = env
+	return tmpl.Execute(context)
+}
 
-	out, err := tmpl.Execute(context)
+var shell = `{% for cmd in commands %}{{ cmd | safe }}
+{% endfor %}`
+
+func RenderShell(commands []string) (string, error) {
+	tmpl, err := pongo2.FromString(shell)
 	if err != nil {
 		return "", err
 	}
-	return out, nil
+	return tmpl.Execute(pongo2.Context{"commands": commands})
 }
 
 // EmptyWorkloadCommand returns the command to execute in an empty workload.
