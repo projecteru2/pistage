@@ -22,7 +22,19 @@ func RenderCommand(commandTemplate string, arguments, env, vars map[string]strin
 	}
 	context["vars"] = vars
 	context["env"] = env
-	return tmpl.Execute(context)
+
+	// first render, replace arguments in template
+	out, err := tmpl.Execute(context)
+	if err != nil {
+		return "", err
+	}
+
+	// second render, replace vars and env in arguments
+	tmpl2, err := pongo2.FromString(out)
+	if err != nil {
+		return "", err
+	}
+	return tmpl2.Execute(context)
 }
 
 var shell = `{% for cmd in commands %}{{ cmd | safe }}

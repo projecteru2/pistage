@@ -77,7 +77,7 @@ func getVariables(c *cli.Context) error {
 	return nil
 }
 
-func VariablesCommand() *cli.Command {
+func VariablesCommands() *cli.Command {
 	return &cli.Command{
 		Name:  "vars",
 		Usage: "Control variables of a phistage",

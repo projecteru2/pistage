@@ -71,7 +71,7 @@ func apply(c *cli.Context) error {
 	return applyOneway(c)
 }
 
-func ApplyCommand() *cli.Command {
+func ApplyCommands() *cli.Command {
 	return &cli.Command{
 		Name:  "apply",
 		Usage: "Apply a Phistage",

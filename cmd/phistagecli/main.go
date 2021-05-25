@@ -20,8 +20,10 @@ func main() {
 		Name:    "phistagecli",
 		Version: version.VERSION,
 		Commands: []*cli.Command{
-			commands.ApplyCommand(),
-			commands.VariablesCommand(),
+			commands.ApplyCommands(),
+			commands.VariablesCommands(),
+			commands.JobCommands(),
+			commands.StepCommands(),
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{

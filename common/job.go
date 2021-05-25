@@ -4,7 +4,13 @@ import (
 	"io"
 	"time"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
+)
+
+var (
+	ErrorJobHasNoName  = errors.New("Job has no name")
+	ErrorStepHasNoName = errors.New("Step has no name")
 )
 
 type Job struct {
@@ -33,6 +39,9 @@ func LoadJob(content []byte) (*Job, error) {
 	if err != nil {
 		return nil, err
 	}
+	if j.Name == "" {
+		return nil, ErrorJobHasNoName
+	}
 	return j, nil
 }
 
@@ -50,6 +59,9 @@ func LoadStep(content []byte) (*Step, error) {
 	err := yaml.Unmarshal(content, s)
 	if err != nil {
 		return nil, err
+	}
+	if s.Name == "" {
+		return nil, ErrorStepHasNoName
 	}
 	return s, nil
 }

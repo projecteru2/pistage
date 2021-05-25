@@ -410,38 +410,32 @@ func (fs *FileSystemStore) GetRegisteredStep(ctx context.Context, name string) (
 
 // ${root}/phistage/${sha1 of phistage name}/vars
 func (fs *FileSystemStore) SetVariablesForPhistage(ctx context.Context, name string, vars map[string]string) error {
-	phistage, err := fs.GetPhistage(ctx, name)
-	if err != nil {
-		return err
-	}
-
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(phistage.Name)
+	sha1OfName, err := Sha1HexDigest(name)
 	if err != nil {
 		return err
 	}
 
-	varsPath := filepath.Join(fs.root, "phistage", sha1OfName, "vars")
+	rootPath := filepath.Join(fs.root, "phistage", sha1OfName)
+	if err := os.MkdirAll(rootPath, 0700); err != nil {
+		return err
+	}
+
 	content, err := json.Marshal(vars)
 	if err != nil {
 		return err
 	}
-	return overrideFile(varsPath, content)
+	return overrideFile(filepath.Join(rootPath, "vars"), content)
 }
 
 // ${root}/phistage/${sha1 of phistage name}/vars
 func (fs *FileSystemStore) GetVariablesForPhistage(ctx context.Context, name string) (map[string]string, error) {
-	phistage, err := fs.GetPhistage(ctx, name)
-	if err != nil {
-		return nil, err
-	}
-
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(phistage.Name)
+	sha1OfName, err := Sha1HexDigest(name)
 	if err != nil {
 		return nil, err
 	}

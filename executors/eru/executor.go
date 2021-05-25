@@ -236,6 +236,8 @@ func (e *EruJobExecutor) executeCommands(ctx context.Context, cmds []string, arg
 		return err
 	}
 
+	fmt.Println(shell)
+
 	exec, err := e.eru.ExecuteWorkload(ctx)
 	if err != nil {
 		return err
