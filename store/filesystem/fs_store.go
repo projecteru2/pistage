@@ -15,6 +15,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/projecteru2/phistage/common"
 	"github.com/projecteru2/phistage/store"
+	"gopkg.in/yaml.v3"
 )
 
 type FileSystemStore struct {
@@ -455,4 +456,65 @@ func (fs *FileSystemStore) GetVariablesForPhistage(ctx context.Context, name str
 		return nil, err
 	}
 	return vars, nil
+}
+
+// ${root}/registered/khoriumstep/${sha1 of step name}/khoriumstep.yml
+func (fs *FileSystemStore) RegisterKhoriumStep(ctx context.Context, ks *common.KhoriumStep) error {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
+
+	sha1OfName, err := Sha1HexDigest(ks.Name)
+	if err != nil {
+		return err
+	}
+
+	rootPath := filepath.Join(fs.root, "registered", "khoriumstep", sha1OfName)
+	content, err := yaml.Marshal(ks)
+	if err != nil {
+		return err
+	}
+	return writeIfNotExist(filepath.Join(rootPath, "khoriumstep.yml"), content)
+}
+
+// ${root}/registered/khoriumstep/${sha1 of step name}/khoriumstep.yml
+// ${root}/registered/khoriumstep/${sha1 of step name}/...
+func (fs *FileSystemStore) GetRegisteredKhoriumStep(ctx context.Context, name string) (*common.KhoriumStep, error) {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
+
+	sha1OfName, err := Sha1HexDigest(name)
+	if err != nil {
+		return nil, err
+	}
+
+	rootPath := filepath.Join(fs.root, "registered", "khoriumstep", sha1OfName)
+	content, err := ioutil.ReadFile(filepath.Join(rootPath, "khoriumstep.yml"))
+	if err != nil {
+		return nil, err
+	}
+
+	ks, err := common.LoadKhoriumStep(content)
+	if err != nil {
+		return nil, err
+	}
+
+	traverse := func(file string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		c, err := ioutil.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		ks.Files[strings.TrimPrefix(file, rootPath)] = c
+		return nil
+	}
+
+	if err := filepath.Walk(rootPath, traverse); err != nil {
+		return nil, err
+	}
+	return ks, nil
 }

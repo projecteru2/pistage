@@ -31,6 +31,8 @@ type Store interface {
 	GetRegisteredJob(ctx context.Context, name string) (*common.Job, error)
 	RegisterStep(ctx context.Context, step *common.Step) error
 	GetRegisteredStep(ctx context.Context, name string) (*common.Step, error)
+	RegisterKhoriumStep(ctx context.Context, step *common.KhoriumStep) error
+	GetRegisteredKhoriumStep(ctx context.Context, name string) (*common.KhoriumStep, error)
 
 	// Variables
 	SetVariablesForPhistage(ctx context.Context, name string, vars map[string]string) error

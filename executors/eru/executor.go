@@ -15,12 +15,19 @@ import (
 
 	"github.com/projecteru2/phistage/common"
 	"github.com/projecteru2/phistage/helpers/command"
+	"github.com/projecteru2/phistage/helpers/variable"
 	"github.com/projecteru2/phistage/store"
 )
 
-// stupid eru-core doesn't export this
-// BTW I really didn't think this can be a string with a space as suffix...
-const exitMessagePrefix = "[exitcode] "
+const (
+	// stupid eru-core doesn't export this
+	// BTW I really didn't think this can be a string with a space as suffix...
+	exitMessagePrefix = "[exitcode] "
+
+	// working dir for KhoriumStep.
+	// will be added after DefaultWorkingDir
+	khoriumStepWorkingDir = "_khorium_step/"
+)
 
 var ErrExecutionError = errors.New("Execution error")
 
@@ -111,7 +118,8 @@ func (e *EruJobExecutor) buildEruLambdaOptions() *corepb.RunAndWaitOptions {
 				Name:       e.job.Name,
 				Commands:   command.EmptyWorkloadCommand(e.job.Timeout),
 				Privileged: e.config.Eru.DefaultPrivileged,
-				Dir:        e.config.Eru.DefaultWorkingDir,
+				// TODO tricky here
+				Dir: filepath.Join(e.config.Eru.DefaultWorkingDir, khoriumStepWorkingDir),
 			},
 			Podname:        e.config.Eru.DefaultPodname,
 			Image:          e.job.Image,
@@ -143,7 +151,18 @@ func (e *EruJobExecutor) prepareFileContext(ctx context.Context) error {
 // Execute will execute all steps within this job one by one
 func (e *EruJobExecutor) Execute(ctx context.Context) error {
 	for _, step := range e.job.Steps {
-		if err := e.executeStep(ctx, step); err != nil {
+		var err error
+		switch step.Uses {
+		case "":
+			err = e.executeStep(ctx, step)
+		default:
+			// step, err = e.replaceStepWithUses(ctx, step)
+			// if err != nil {
+			// 	return err
+			// }
+			err = e.executeKhoriumStep(ctx, step)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -189,11 +208,6 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 		vars map[string]string
 	)
 
-	step, err = e.replaceStepWithUses(ctx, step)
-	if err != nil {
-		return err
-	}
-
 	vars, err = e.store.GetVariablesForPhistage(ctx, e.phistage.Name)
 	if err != nil {
 		return err
@@ -212,6 +226,82 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 
 	err = e.executeCommands(ctx, step.Run, step.With, environment, vars)
 	return err
+}
+
+// executeKhoriumStep executes a KhoriumStep defined by step.Uses.
+func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.Step) error {
+	ks, err := e.store.GetRegisteredKhoriumStep(ctx, step.Uses)
+	if err != nil {
+		return err
+	}
+
+	vars, err := e.store.GetVariablesForPhistage(ctx, e.phistage.Name)
+	if err != nil {
+		return err
+	}
+
+	arguments, err := variable.RenderArguments(step.With, step.Environment, vars)
+	if err != nil {
+		return err
+	}
+
+	ksEnv, err := ks.BuildEnvironmentVariables(arguments)
+	if err != nil {
+		return err
+	}
+	envs := command.MergeVariables(step.Environment, ksEnv)
+
+	workingDir := filepath.Join(e.config.Eru.DefaultWorkingDir, khoriumStepWorkingDir)
+	files := map[string][]byte{}
+	for name, content := range ks.Files {
+		files[filepath.Join(workingDir, name)] = content
+	}
+
+	fc := NewEruFileCollector(e.eru)
+	fc.SetFiles(files)
+	if err := fc.CopyTo(ctx, e.workloadID, nil); err != nil {
+		return err
+	}
+
+	exec, err := e.eru.ExecuteWorkload(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := exec.Send(&corepb.ExecuteWorkloadOptions{
+		WorkloadId: e.workloadID,
+		Commands:   []string{"/bin/sh", "-c", ks.Run.Main},
+		Envs:       command.ToEnvironmentList(envs),
+		Workdir:    workingDir,
+	}); err != nil {
+		return err
+	}
+
+	for {
+		message, err := exec.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		data := string(message.Data)
+		if strings.HasPrefix(data, exitMessagePrefix) {
+			exitcode, err := strconv.Atoi(strings.TrimPrefix(data, exitMessagePrefix))
+			if err != nil {
+				return err
+			}
+			if exitcode != 0 {
+				return errors.WithMessagef(ErrExecutionError, "exitcode: %d", exitcode)
+			}
+		} else {
+			if _, err := io.WriteString(e.output, data); err != nil {
+				return err
+			}
+		}
+	}
+	return exec.CloseSend()
 }
 
 // executeCommands executes cmd with given arguments, environments and variables.
@@ -235,8 +325,6 @@ func (e *EruJobExecutor) executeCommands(ctx context.Context, cmds []string, arg
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(shell)
 
 	exec, err := e.eru.ExecuteWorkload(ctx)
 	if err != nil {

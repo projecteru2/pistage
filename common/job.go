@@ -1,7 +1,9 @@
 package common
 
 import (
+	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -9,7 +11,13 @@ import (
 )
 
 var (
-	ErrorJobHasNoName  = errors.New("Job has no name")
+	// ErrorJobHasNoName is returned when the job has no name.
+	// This is only returned when directly loading a job from yaml specification.
+	// When loading from a phistage, this won't be returned since jobs in phistage
+	// is a map, the names are the keys.
+	ErrorJobHasNoName = errors.New("Job has no name")
+
+	// ErrorStepHasNoName is returned when the step has no name.
 	ErrorStepHasNoName = errors.New("Step has no name")
 )
 
@@ -66,6 +74,7 @@ func LoadStep(content []byte) (*Step, error) {
 	return s, nil
 }
 
+// JobRunStatus is the status of a JobRun
 type JobRunStatus string
 
 var (
@@ -90,4 +99,88 @@ type JobRun struct {
 	Start     time.Time          `json:"start"`
 	End       time.Time          `json:"end"`
 	LogTracer io.ReadWriteCloser `json:"-"`
+}
+
+var (
+	// ErrorInputIsRequired is returned when a value for KhoriumStepInput is required but not given.
+	ErrorInputIsRequired = errors.New("Input is required")
+
+	// ErrorMustSpecifyRun is returned when run is not given in the specification.
+	ErrorMustSpecifyRun = errors.New("Must specify run")
+
+	// ErrorMustSpecifyMain is returned when main is not given in run part.
+	ErrorMustSpecifyMain = errors.New("Must specify main")
+)
+
+// KhoriumStep is the predefined step.
+// It can be used as a step to execute during a job.
+type KhoriumStep struct {
+	Name        string                       `yaml:"name" json:"name"`
+	Description string                       `yaml:"description" json:"description"`
+	Inputs      map[string]*KhoriumStepInput `yaml:"inputs" json:"inputs"`
+	Run         *KhoriumStepRun              `yaml:"run" json:"run"`
+
+	// Files contains all the files within this KhoriumStep, filename with path as key, content as value.
+	// They can be binary executable, or scripts, as a tarball.
+	Files map[string][]byte `yaml:"-" json:"-"`
+}
+
+func (ks *KhoriumStep) Validate() error {
+	if ks.Name == "" {
+		return ErrorStepHasNoName
+	}
+	if ks.Run == nil {
+		return ErrorMustSpecifyRun
+	}
+	if ks.Run.Main == "" {
+		return ErrorMustSpecifyMain
+	}
+	return nil
+}
+
+// BuildEnvironmentVariables builds an environment variables map for the input.
+// If the value is required but not given, will return an error.
+// The values in KhoriumStepInput will be set as an environment variable in the format
+// KHORIUMSTEP_INPUT_${upper case of the input name}.
+func (ks *KhoriumStep) BuildEnvironmentVariables(vars map[string]string) (map[string]string, error) {
+	envs := map[string]string{}
+	for name, input := range ks.Inputs {
+		key := fmt.Sprintf("KHORIUMSTEP_INPUT_%s", strings.ToUpper(name))
+		value, ok := vars[name]
+
+		switch {
+		case input.Required && !ok:
+			return nil, errors.WithMessagef(ErrorInputIsRequired, "input: %s", name)
+		case ok:
+			envs[key] = value
+		default:
+			envs[key] = input.Default
+		}
+	}
+	return envs, nil
+}
+
+// KhoriumStepInput is the inputs of KhoriumStep.
+type KhoriumStepInput struct {
+	Description string `yaml:"description" json:"description"`
+	Default     string `yaml:"default" json:"default"`
+	Required    bool   `yaml:"required" json:"required"`
+}
+
+// KhoriumStepRun is the command to run of KhoriumStep
+type KhoriumStepRun struct {
+	Main string `yaml:"main" json:"main"`
+	Post string `yaml:"post" json:"post"`
+}
+
+func LoadKhoriumStep(content []byte) (*KhoriumStep, error) {
+	ks := &KhoriumStep{}
+	err := yaml.Unmarshal(content, ks)
+	if err != nil {
+		return nil, err
+	}
+	if ks.Files == nil {
+		ks.Files = map[string][]byte{}
+	}
+	return ks, ks.Validate()
 }

@@ -20,9 +20,11 @@ type JobExecutor interface {
 	// Usually creates container / virtual machine runtime,
 	// setups the environment for job to run.
 	Prepare(ctx context.Context) error
+
 	// Execute does the execution phase.
 	// Usually actually executes all the steps in the job.
 	Execute(ctx context.Context) error
+
 	// Cleanup does the clean up phase.
 	// Usually it does cleaning work, collects necessary artifacts,
 	// and remove the container / virtual machine runtime.
@@ -34,6 +36,7 @@ type JobExecutor interface {
 type ExecutorProvider interface {
 	// GetName returns the name of this ExecutorProvider.
 	GetName() string
+
 	// GetJobExecutor returns a JobExecutor with the given job and phistage,
 	// all job executors in use should be generated from this method.
 	GetJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer) (JobExecutor, error)

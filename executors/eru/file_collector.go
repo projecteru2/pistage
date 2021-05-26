@@ -8,8 +8,11 @@ import (
 	"io"
 	"sync"
 
+	"github.com/pkg/errors"
 	corepb "github.com/projecteru2/core/rpc/gen"
 )
+
+var ErrorCopyToContainer = errors.New("Error copy to container")
 
 type EruFileCollector struct {
 	mutex     sync.Mutex
@@ -23,6 +26,13 @@ func NewEruFileCollector(eru corepb.CoreRPCClient) *EruFileCollector {
 		eru:   eru,
 		files: map[string][]byte{},
 	}
+}
+
+func (e *EruFileCollector) SetFiles(files map[string][]byte) {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+
+	e.files = files
 }
 
 func (e *EruFileCollector) Collect(ctx context.Context, workloadID string, files []string) error {
@@ -146,12 +156,15 @@ func (e *EruFileCollector) CopyTo(ctx context.Context, workloadID string, files 
 	}
 
 	for {
-		_, err := resp.Recv()
+		m, err := resp.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			return err
+		}
+		if m.Error != "" {
+			return errors.WithMessagef(ErrorCopyToContainer, "path: %s, error: %s", m.Path, m.Error)
 		}
 	}
 	return nil
