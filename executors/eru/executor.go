@@ -26,7 +26,7 @@ const (
 
 	// working dir for KhoriumStep.
 	// will be added after DefaultWorkingDir
-	khoriumStepWorkingDir = "_khorium_step/"
+	khoriumStepWorkingDir = "/_khoriumstep/"
 )
 
 var ErrExecutionError = errors.New("Execution error")
@@ -105,6 +105,17 @@ func (e *EruJobExecutor) prepareJobRuntime(ctx context.Context) error {
 	return nil
 }
 
+// defaultEnvironmentVariables sets some useful information into environment variables.
+// This will be set to the whole running context within the workload.
+func (e *EruJobExecutor) defaultEnvironmentVariables() map[string]string {
+	return map[string]string{
+		"PHISTAGE_WORKING_DIR": e.config.Eru.DefaultWorkingDir,
+	}
+}
+
+// buildEruLambdaOptions builds the options for ERU lambda workload.
+// Currently only container supports, it's just because I never tried virtual machines
+// or systemd engine...
 func (e *EruJobExecutor) buildEruLambdaOptions() *corepb.RunAndWaitOptions {
 	jobImage := e.job.Image
 	if jobImage == "" {
@@ -118,13 +129,12 @@ func (e *EruJobExecutor) buildEruLambdaOptions() *corepb.RunAndWaitOptions {
 				Name:       e.job.Name,
 				Commands:   command.EmptyWorkloadCommand(e.job.Timeout),
 				Privileged: e.config.Eru.DefaultPrivileged,
-				// TODO tricky here
-				Dir: filepath.Join(e.config.Eru.DefaultWorkingDir, khoriumStepWorkingDir),
+				Dir:        e.config.Eru.DefaultWorkingDir,
 			},
 			Podname:        e.config.Eru.DefaultPodname,
 			Image:          e.job.Image,
 			Count:          1,
-			Env:            command.ToEnvironmentList(e.jobEnvironment),
+			Env:            command.ToEnvironmentList(command.MergeVariables(e.jobEnvironment, e.defaultEnvironmentVariables())),
 			Networks:       map[string]string{e.config.Eru.DefaultNetwork: ""},
 			DeployStrategy: corepb.DeployOptions_AUTO,
 			ResourceOpts:   &corepb.ResourceOptions{},
@@ -251,10 +261,13 @@ func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 	}
 	envs := command.MergeVariables(step.Environment, ksEnv)
 
-	workingDir := filepath.Join(e.config.Eru.DefaultWorkingDir, khoriumStepWorkingDir)
 	files := map[string][]byte{}
 	for name, content := range ks.Files {
-		files[filepath.Join(workingDir, name)] = content
+		files[filepath.Join(khoriumStepWorkingDir, name)] = content
+	}
+
+	if err := e.createNecessaryDirs(ctx, files); err != nil {
+		return err
 	}
 
 	fc := NewEruFileCollector(e.eru)
@@ -272,7 +285,7 @@ func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 		WorkloadId: e.workloadID,
 		Commands:   []string{"/bin/sh", "-c", ks.Run.Main},
 		Envs:       command.ToEnvironmentList(envs),
-		Workdir:    workingDir,
+		Workdir:    khoriumStepWorkingDir,
 	}); err != nil {
 		return err
 	}
@@ -298,6 +311,58 @@ func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 		} else {
 			if _, err := io.WriteString(e.output, data); err != nil {
 				return err
+			}
+		}
+	}
+	return exec.CloseSend()
+}
+
+// createNecessaryDirs is a little tricky used by ERU.
+// Since ERU doesn't provide a `docker cp -` like feature,
+// we must ensure all the dirs of the files we send to container exist.
+// So we use this function to create all dirs.
+func (e *EruJobExecutor) createNecessaryDirs(ctx context.Context, files map[string][]byte) error {
+	// golang is really, really stupid
+	dirs := map[string]struct{}{}
+	for path := range files {
+		dirs[filepath.Dir(path)] = struct{}{}
+	}
+
+	shell := []string{"/bin/mkdir", "-p"}
+	for path := range dirs {
+		shell = append(shell, path)
+	}
+
+	exec, err := e.eru.ExecuteWorkload(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := exec.Send(&corepb.ExecuteWorkloadOptions{
+		WorkloadId: e.workloadID,
+		Commands:   shell,
+		Workdir:    "/",
+	}); err != nil {
+		return err
+	}
+
+	for {
+		message, err := exec.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		data := string(message.Data)
+		if strings.HasPrefix(data, exitMessagePrefix) {
+			exitcode, err := strconv.Atoi(strings.TrimPrefix(data, exitMessagePrefix))
+			if err != nil {
+				return err
+			}
+			if exitcode != 0 {
+				return errors.WithMessagef(ErrExecutionError, "exitcode: %d", exitcode)
 			}
 		}
 	}
