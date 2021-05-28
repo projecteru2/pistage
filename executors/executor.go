@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/projecteru2/phistage/common"
+	"github.com/sirupsen/logrus"
 )
 
 type PhistageExecutor interface {
@@ -52,6 +53,7 @@ var ErrorExecuteProviderNotFound = errors.New("ExecutorProvider not found")
 // latter registration will override former ones.
 func RegisterExecutorProvider(ep ExecutorProvider) {
 	executorProviders[ep.GetName()] = ep
+	logrus.WithField("executor", ep.GetName()).Info("ExecutorProvider registered")
 }
 
 // GetExecutorProvider gets executor provider by the given name.

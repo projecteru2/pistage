@@ -4,9 +4,6 @@ import (
 	"os"
 
 	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/executors"
-	"github.com/projecteru2/phistage/executors/eru"
-	"github.com/projecteru2/phistage/executors/shell"
 	"github.com/projecteru2/phistage/store"
 	"github.com/projecteru2/phistage/store/filesystem"
 
@@ -25,25 +22,6 @@ func InitStorage(config *common.Config) (store.Store, error) {
 	default:
 		return nil, ErrorStorageNotSpecified
 	}
-}
-
-// InitExecutorProvider initiates and registers executor providers.
-func InitExecutorProvider(config *common.Config, store store.Store) error {
-	// init eru executor provider.
-	eruProvider, err := eru.NewEruJobExecutorProvider(config, store)
-	if err != nil {
-		return err
-	}
-	executors.RegisterExecutorProvider(eruProvider)
-
-	// init localshell executor provider.
-	localshellProvider, err := shell.NewLocalShellJobExecutorProvider(config, store)
-	if err != nil {
-		return err
-	}
-	executors.RegisterExecutorProvider(localshellProvider)
-
-	return nil
 }
 
 // SetupLog initiates logrus default logger.

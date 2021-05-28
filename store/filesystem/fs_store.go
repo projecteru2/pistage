@@ -14,6 +14,7 @@ import (
 
 	"github.com/bwmarrin/snowflake"
 	"github.com/projecteru2/phistage/common"
+	"github.com/projecteru2/phistage/helpers"
 	"github.com/projecteru2/phistage/store"
 	"gopkg.in/yaml.v3"
 )
@@ -42,7 +43,7 @@ func (fs *FileSystemStore) CreatePhistage(ctx context.Context, phistage *common.
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(phistage.Name)
+	sha1OfName, err := helpers.Sha1HexDigest(phistage.Name)
 	if err != nil {
 		return err
 	}
@@ -62,16 +63,16 @@ func (fs *FileSystemStore) CreatePhistage(ctx context.Context, phistage *common.
 		return err
 	}
 
-	sha1OfFile, err := Sha1HexDigest(content)
+	sha1OfFile, err := helpers.Sha1HexDigest(content)
 	if err != nil {
 		return err
 	}
 
-	if err := writeIfNotExist(filepath.Join(metaPath, sha1OfFile), content); err != nil {
+	if err := helpers.WriteIfNotExist(filepath.Join(metaPath, sha1OfFile), content); err != nil {
 		return err
 	}
 
-	if err := overrideFile(filepath.Join(metaPath, "current"), sha1OfFile); err != nil {
+	if err := helpers.OverWriteFile(filepath.Join(metaPath, "current"), sha1OfFile); err != nil {
 		return err
 	}
 	return nil
@@ -81,7 +82,7 @@ func (fs *FileSystemStore) GetPhistage(ctx context.Context, name string) (*commo
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(name)
+	sha1OfName, err := helpers.Sha1HexDigest(name)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func (fs *FileSystemStore) DeletePhistage(ctx context.Context, name string) erro
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(name)
+	sha1OfName, err := helpers.Sha1HexDigest(name)
 	if err != nil {
 		return err
 	}
@@ -142,17 +143,17 @@ func (fs *FileSystemStore) CreateRun(ctx context.Context, run *common.Run) error
 	if err != nil {
 		return err
 	}
-	if err := writeIfNotExist(filepath.Join(rootPath, "run"), content); err != nil {
+	if err := helpers.WriteIfNotExist(filepath.Join(rootPath, "run"), content); err != nil {
 		return err
 	}
 
 	// phistage run
-	sha1OfPhistageName, err := Sha1HexDigest(run.Phistage)
+	sha1OfPhistageName, err := helpers.Sha1HexDigest(run.Phistage)
 	if err != nil {
 		return err
 	}
 	filename := filepath.Join(fs.root, "phistage", sha1OfPhistageName, "run", run.ID)
-	if err := overrideFile(filename, ""); err != nil {
+	if err := helpers.OverWriteFile(filename, ""); err != nil {
 		return err
 	}
 
@@ -186,7 +187,7 @@ func (fs *FileSystemStore) UpdateRun(ctx context.Context, run *common.Run) error
 	if err != nil {
 		return err
 	}
-	return overrideFile(runPath, content)
+	return helpers.OverWriteFile(runPath, content)
 }
 
 // ${root}/phistage/${sha1 of phistage name}/run/${run id}
@@ -194,7 +195,7 @@ func (fs *FileSystemStore) GetRunsByPhistage(ctx context.Context, name string) (
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(name)
+	sha1OfName, err := helpers.Sha1HexDigest(name)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +231,7 @@ func (fs *FileSystemStore) CreateJobRun(ctx context.Context, run *common.Run, jo
 	}
 
 	jobRunPath := filepath.Join(fs.root, "run", run.ID, "jobrun", jobRun.ID)
-	return writeIfNotExist(jobRunPath, content)
+	return helpers.WriteIfNotExist(jobRunPath, content)
 }
 
 // ${root}/run/${id}/jobrun/${jobrun id}
@@ -262,7 +263,7 @@ func (fs *FileSystemStore) UpdateJobRun(ctx context.Context, run *common.Run, jo
 	}
 
 	jobRunPath := filepath.Join(fs.root, "run", run.ID, "jobrun", jobRun.ID)
-	return overrideFile(jobRunPath, content)
+	return helpers.OverWriteFile(jobRunPath, content)
 }
 
 // ${root}/run/${id}/jobrun/${jobrun id}
@@ -279,7 +280,7 @@ func (fs *FileSystemStore) FinishJobRun(ctx context.Context, run *common.Run, jo
 	}
 
 	jobRunPath := filepath.Join(fs.root, "run", run.ID, "jobrun", jobRun.ID)
-	if err := overrideFile(jobRunPath, content); err != nil {
+	if err := helpers.OverWriteFile(jobRunPath, content); err != nil {
 		return err
 	}
 
@@ -331,7 +332,7 @@ func (fs *FileSystemStore) RegisterJob(ctx context.Context, job *common.Job) err
 		return err
 	}
 
-	sha1OfName, err := Sha1HexDigest(job.Name)
+	sha1OfName, err := helpers.Sha1HexDigest(job.Name)
 	if err != nil {
 		return err
 	}
@@ -340,7 +341,7 @@ func (fs *FileSystemStore) RegisterJob(ctx context.Context, job *common.Job) err
 	if err != nil {
 		return err
 	}
-	return writeIfNotExist(filepath.Join(rootPath, sha1OfName), content)
+	return helpers.WriteIfNotExist(filepath.Join(rootPath, sha1OfName), content)
 }
 
 // ${root}/registered/job/${sha1 of job name}
@@ -348,7 +349,7 @@ func (fs *FileSystemStore) GetRegisteredJob(ctx context.Context, name string) (*
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(name)
+	sha1OfName, err := helpers.Sha1HexDigest(name)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +376,7 @@ func (fs *FileSystemStore) RegisterStep(ctx context.Context, step *common.Step) 
 		return err
 	}
 
-	sha1OfName, err := Sha1HexDigest(step.Name)
+	sha1OfName, err := helpers.Sha1HexDigest(step.Name)
 	if err != nil {
 		return err
 	}
@@ -384,7 +385,7 @@ func (fs *FileSystemStore) RegisterStep(ctx context.Context, step *common.Step) 
 	if err != nil {
 		return err
 	}
-	return writeIfNotExist(filepath.Join(rootPath, sha1OfName), content)
+	return helpers.WriteIfNotExist(filepath.Join(rootPath, sha1OfName), content)
 }
 
 // ${root}/registered/step/${sha1 of step name}
@@ -392,7 +393,7 @@ func (fs *FileSystemStore) GetRegisteredStep(ctx context.Context, name string) (
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(name)
+	sha1OfName, err := helpers.Sha1HexDigest(name)
 	if err != nil {
 		return nil, err
 	}
@@ -414,7 +415,7 @@ func (fs *FileSystemStore) SetVariablesForPhistage(ctx context.Context, name str
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(name)
+	sha1OfName, err := helpers.Sha1HexDigest(name)
 	if err != nil {
 		return err
 	}
@@ -428,7 +429,7 @@ func (fs *FileSystemStore) SetVariablesForPhistage(ctx context.Context, name str
 	if err != nil {
 		return err
 	}
-	return overrideFile(filepath.Join(rootPath, "vars"), content)
+	return helpers.OverWriteFile(filepath.Join(rootPath, "vars"), content)
 }
 
 // ${root}/phistage/${sha1 of phistage name}/vars
@@ -436,7 +437,7 @@ func (fs *FileSystemStore) GetVariablesForPhistage(ctx context.Context, name str
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(name)
+	sha1OfName, err := helpers.Sha1HexDigest(name)
 	if err != nil {
 		return nil, err
 	}
@@ -463,7 +464,7 @@ func (fs *FileSystemStore) RegisterKhoriumStep(ctx context.Context, ks *common.K
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(ks.Name)
+	sha1OfName, err := helpers.Sha1HexDigest(ks.Name)
 	if err != nil {
 		return err
 	}
@@ -473,7 +474,7 @@ func (fs *FileSystemStore) RegisterKhoriumStep(ctx context.Context, ks *common.K
 	if err != nil {
 		return err
 	}
-	return writeIfNotExist(filepath.Join(rootPath, "khoriumstep.yml"), content)
+	return helpers.WriteIfNotExist(filepath.Join(rootPath, "khoriumstep.yml"), content)
 }
 
 // ${root}/registered/khoriumstep/${sha1 of step name}/khoriumstep.yml
@@ -482,7 +483,7 @@ func (fs *FileSystemStore) GetRegisteredKhoriumStep(ctx context.Context, name st
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := Sha1HexDigest(name)
+	sha1OfName, err := helpers.Sha1HexDigest(name)
 	if err != nil {
 		return nil, err
 	}

@@ -8,13 +8,15 @@ import (
 
 // Config is global config for phistage
 type Config struct {
-	Bind               string `yaml:"bind" default:":9736"`
-	StageServerWorkers int    `yaml:"stage_server_workers" default:"10"`
+	Bind               string   `yaml:"bind" default:":9736"`
+	StageServerWorkers int      `yaml:"stage_server_workers" default:"10"`
+	JobExecutors       []string `yaml:"job_executors" default:"[eru]"`
 
 	DefaultJobExecutor       string `yaml:"default_job_executor" default:"eru"`
 	DefaultJobExecuteTimeout int    `yaml:"default_job_execute_timeout" default:"1200"`
 
 	Eru     EruConfig     `yaml:"eru"`
+	SSH     SSHConfig     `yaml:"ssh"`
 	Storage StorageConfig `yaml:"storage"`
 }
 
@@ -30,6 +32,12 @@ type EruConfig struct {
 	DefaultNetwork    string `yaml:"default_network" default:"host"`
 }
 
+type SSHConfig struct {
+	User       string `yaml:"user"`
+	PrivateKey string `yaml:"private_key"`
+	Address    string `yaml:"address"`
+}
+
 type StorageConfig struct {
 	Type                string `yaml:"type"`
 	FileSystemStoreRoot string `yaml:"filesystem_store_root"`
@@ -41,6 +49,9 @@ func (c *Config) initDefault() {
 	}
 	if c.StageServerWorkers == 0 {
 		c.StageServerWorkers = 10
+	}
+	if len(c.JobExecutors) == 0 {
+		c.JobExecutors = []string{"eru"}
 	}
 	if c.DefaultJobExecutor == "" {
 		c.DefaultJobExecutor = "eru"

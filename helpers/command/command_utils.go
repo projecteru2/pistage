@@ -48,6 +48,14 @@ func RenderShell(commands []string) (string, error) {
 	return tmpl.Execute(pongo2.Context{"commands": commands})
 }
 
+func RenderEnvironmentForSSH(envs map[string]string) string {
+	lines := []string{}
+	for name, value := range envs {
+		lines = append(lines, fmt.Sprintf("export %s=%s", name, value))
+	}
+	return strings.Join(lines, "\n")
+}
+
 // EmptyWorkloadCommand returns the command to execute in an empty workload.
 // Currently we use a sleep timeout command to achieve this.
 // Interestingly, k8s uses pause and GitHub Action uses tail -f /dev/null.

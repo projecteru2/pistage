@@ -26,7 +26,6 @@ type LocalShellJobExecutor struct {
 
 	output         io.Writer
 	workingDir     string
-	workloadID     string
 	jobEnvironment map[string]string
 }
 
@@ -208,10 +207,8 @@ func (ls *LocalShellJobExecutor) writeFiles(files map[string][]byte) error {
 	return nil
 }
 
-// createNecessaryDirs is a little tricky used by ERU.
-// Since ERU doesn't provide a `docker cp -` like feature,
-// we must ensure all the dirs of the files we send to container exist.
-// So we use this function to create all dirs.
+// createNecessaryDirs creates essential dirs for files,
+// otherwise error occurs when we open files for writting.
 func (ls *LocalShellJobExecutor) createNecessaryDirs(ctx context.Context, files map[string][]byte) error {
 	// golang is really, really stupid
 	dirs := map[string]struct{}{}
