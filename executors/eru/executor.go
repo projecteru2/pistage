@@ -29,8 +29,6 @@ const (
 	khoriumStepWorkingDir = "/_khoriumstep/"
 )
 
-var ErrExecutionError = errors.New("Execution error")
-
 type EruJobExecutor struct {
 	eru    corepb.CoreRPCClient
 	store  store.Store
@@ -110,6 +108,7 @@ func (e *EruJobExecutor) prepareJobRuntime(ctx context.Context) error {
 func (e *EruJobExecutor) defaultEnvironmentVariables() map[string]string {
 	return map[string]string{
 		"PHISTAGE_WORKING_DIR": e.config.Eru.DefaultWorkingDir,
+		"PHISTAGE_JOB_NAME":    e.job.Name,
 	}
 }
 
@@ -226,7 +225,7 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 	environment := command.MergeVariables(e.jobEnvironment, step.Environment)
 
 	defer func() {
-		if !errors.Is(err, ErrExecutionError) {
+		if !errors.Is(err, common.ErrExecutionError) {
 			return
 		}
 		if err := e.executeCommands(ctx, step.OnError, step.With, environment, vars); err != nil {
@@ -306,7 +305,7 @@ func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 				return err
 			}
 			if exitcode != 0 {
-				return errors.WithMessagef(ErrExecutionError, "exitcode: %d", exitcode)
+				return errors.WithMessagef(common.ErrExecutionError, "exitcode: %d", exitcode)
 			}
 		} else {
 			if _, err := io.WriteString(e.output, data); err != nil {
@@ -362,7 +361,7 @@ func (e *EruJobExecutor) createNecessaryDirs(ctx context.Context, files map[stri
 				return err
 			}
 			if exitcode != 0 {
-				return errors.WithMessagef(ErrExecutionError, "exitcode: %d", exitcode)
+				return errors.WithMessagef(common.ErrExecutionError, "exitcode: %d", exitcode)
 			}
 		}
 	}
@@ -420,7 +419,7 @@ func (e *EruJobExecutor) executeCommands(ctx context.Context, cmds []string, arg
 				return err
 			}
 			if exitcode != 0 {
-				return errors.WithMessagef(ErrExecutionError, "exitcode: %d", exitcode)
+				return errors.WithMessagef(common.ErrExecutionError, "exitcode: %d", exitcode)
 			}
 		} else {
 			if _, err := io.WriteString(e.output, data); err != nil {

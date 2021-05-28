@@ -154,7 +154,7 @@ func (s *StageServer) runOneJob(phistage *common.Phistage, job *common.Job, run 
 	executorProvider := executors.GetExecutorProvider(phistage.Executor)
 	if executorProvider == nil {
 		logger.Errorf("[Stager runOneJob] fail to get a provider")
-		return errors.WithMessagef(executors.ErrorExecuteProviderNotFound, phistage.Name)
+		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, phistage.Name)
 	}
 
 	executor, err := executorProvider.GetJobExecutor(job, phistage, jobRun.LogTracer)
