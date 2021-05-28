@@ -47,12 +47,15 @@ type SSHJobExecutor struct {
 // Since job needs to know its context, phistage is assigned too.
 func NewSSHJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer, client *ssh.Client, store store.Store, config *common.Config) (*SSHJobExecutor, error) {
 	// get the current working dir as writable home.
-	b := &bytes.Buffer{}
-	if err := executeCommand(client, "pwd", "", nil, b); err != nil {
+	session, err := client.NewSession()
+	if err != nil {
 		return nil, err
 	}
-	// home dir should be the `pwd` after login
-	home := b.String()
+	defer session.Close()
+
+	// home dir should be $HOME after login
+	out, err := session.Output("echo $HOME")
+	home := strings.TrimSuffix(string(out), "\n")
 	if len(home) == 0 {
 		home = "/home/" + config.SSH.User
 	}
