@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -55,6 +54,10 @@ func NewSSHJobExecutor(job *common.Job, phistage *common.Phistage, output io.Wri
 
 	// home dir should be $HOME after login
 	out, err := session.Output("echo $HOME")
+	if err != nil {
+		return nil, err
+	}
+
 	home := strings.TrimSuffix(string(out), "\n")
 	if len(home) == 0 {
 		home = "/home/" + config.SSH.User
@@ -87,7 +90,7 @@ func executeCommand(client *ssh.Client, cmd, home string, envs map[string]string
 		cmd,
 	}
 	commandToExecute := strings.Join(commandShards, "\n")
-	session.Stdout = io.MultiWriter(output, os.Stdout)
+	session.Stdout = output
 	session.Stderr = output
 
 	return session.Run(commandToExecute)

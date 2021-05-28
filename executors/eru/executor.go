@@ -131,7 +131,7 @@ func (e *EruJobExecutor) buildEruLambdaOptions() *corepb.RunAndWaitOptions {
 				Dir:        e.config.Eru.DefaultWorkingDir,
 			},
 			Podname:        e.config.Eru.DefaultPodname,
-			Image:          e.job.Image,
+			Image:          jobImage,
 			Count:          1,
 			Env:            command.ToEnvironmentList(command.MergeVariables(e.jobEnvironment, e.defaultEnvironmentVariables())),
 			Networks:       map[string]string{e.config.Eru.DefaultNetwork: ""},
