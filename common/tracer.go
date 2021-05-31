@@ -49,9 +49,13 @@ func (l *LogTracer) Write(p []byte) (int, error) {
 	return l.writer.Write(p)
 }
 
-// Close implements io.Closer
+// Close implements io.Closer.
+// But Close won't close DonCloseWriter.
 func (l *LogTracer) Close() error {
 	for _, tracer := range l.tracers {
+		if _, ok := tracer.(DonCloseWriter); ok {
+			continue
+		}
 		if t, ok := tracer.(io.Closer); ok {
 			if err := t.Close(); err != nil {
 				return err
@@ -77,4 +81,33 @@ func newLogrusTracer(id string) *logrusTracer {
 func (l *logrusTracer) Write(p []byte) (int, error) {
 	l.entry.Info(string(p))
 	return len(p), nil
+}
+
+// DonCloseWriter wraps an io.Writer, to avoid being closed by LogTracer.
+type DonCloseWriter struct {
+	io.Writer
+}
+
+// Close tries to close the io.Writer if it's an io.WriteCloser.
+// And by doing this, DonCloseWriter is an io.WriteCloser,
+// which can be used as the log tracer for PhistageTask.
+func (dcw DonCloseWriter) Close() error {
+	if closer, ok := dcw.Writer.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
+// ClosableDiscard is a discard that implements io.WriteCloser
+// and won't do anything when writting to this object.
+var ClosableDiscard io.WriteCloser = discard{}
+
+type discard struct{}
+
+func (discard) Write(p []byte) (int, error) {
+	return len(p), nil
+}
+
+func (discard) Close() error {
+	return nil
 }

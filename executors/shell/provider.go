@@ -8,22 +8,22 @@ import (
 	"github.com/projecteru2/phistage/store"
 )
 
-type LocalShellJobExecutorProvider struct {
+type ShellJobExecutorProvider struct {
 	config *common.Config
 	store  store.Store
 }
 
-func NewLocalShellJobExecutorProvider(config *common.Config, store store.Store) (*LocalShellJobExecutorProvider, error) {
-	return &LocalShellJobExecutorProvider{
+func NewShellJobExecutorProvider(config *common.Config, store store.Store) (*ShellJobExecutorProvider, error) {
+	return &ShellJobExecutorProvider{
 		config: config,
 		store:  store,
 	}, nil
 }
 
-func (ls *LocalShellJobExecutorProvider) GetName() string {
+func (ls *ShellJobExecutorProvider) GetName() string {
 	return "shell"
 }
 
-func (ls *LocalShellJobExecutorProvider) GetJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer) (executors.JobExecutor, error) {
-	return NewLocalShellJobExecutor(job, phistage, output, ls.store, ls.config)
+func (ls *ShellJobExecutorProvider) GetJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer) (executors.JobExecutor, error) {
+	return NewShellJobExecutor(job, phistage, output, ls.store, ls.config)
 }

@@ -38,6 +38,11 @@ func (t *topo) addDependencies(name string, dependencies ...string) {
 	}
 }
 
+func (t *topo) checkCyclic() error {
+	_, err := t.graph()
+	return err
+}
+
 // graph returns the global execution graph for the jobs.
 // Note that this is not that high efficiency.
 // For example, if A->B->C, A->D->E, this graph shows that C, E can be executed parallelly,
@@ -58,7 +63,7 @@ func (t *topo) graph() ([][]string, error) {
 			}
 			vertices = append(vertices, vname)
 		}
-		// if no vertices is chosen, there's a circle,
+		// if no vertices is chosen, there's a cycle,
 		// which is a wrong input
 		if len(vertices) == 0 {
 			return nil, ErrorNotDAG
@@ -81,6 +86,13 @@ func (t *topo) graph() ([][]string, error) {
 	return r, nil
 }
 
+// emptyVertexName indicates the end of processing.
+// We don't allow an empty name here, so we won't have
+// an empty vertex in the graph.
+// Empty vertex is used as an indicator telling us to stop
+// processing the topologicall sorting.
+var emptyVertexName = ""
+
 // stream returns a job channel to get jobs from,
 // a finish channel indicating that one job is finished,
 // and a callback function to tell that all jobs are finished.
@@ -92,44 +104,40 @@ func (t *topo) stream() (<-chan string, chan<- string, func()) {
 	t.finishCh = make(chan string, length)
 
 	go t.checkJobs()
+	// t.finishCh is never closed.
+	// Don't worry it will be GCed.
 	return t.jobCh, t.finishCh, func() {
-		close(t.finishCh)
+		t.finishCh <- emptyVertexName
 	}
 }
 
 func (t *topo) checkJobs() {
 	defer close(t.jobCh)
-	var (
-		total      = len(t.vertices)
-		collected  = 0
-		vertices   = []string{}
-		unfinished = 0
-	)
 
+	var vertices = []string{}
 	for vname, indegree := range t.vertices {
 		if indegree != 0 {
 			continue
 		}
 		vertices = append(vertices, vname)
 	}
-	// if no vertices is chosen, there's a circle,
+	// If no vertices is chosen, there's a cycle,
 	// which is a wrong input
 	if len(vertices) == 0 {
 		return
 	}
 
-	collected += len(vertices)
-	unfinished += len(vertices)
 	for _, vname := range vertices {
 		t.jobCh <- vname
 	}
 
-	for collected < total {
+	// NOTE: If there's a cycle, this will become a infinite loop.
+	// So do remember to check the graph before processing.
+	for len(t.vertices) > 0 {
 		vname, ok := <-t.finishCh
-		if !ok {
-			break
+		if !ok || vname == emptyVertexName {
+			return
 		}
-		unfinished--
 
 		tos := t.edges[vname]
 		for _, to := range tos {
@@ -146,15 +154,6 @@ func (t *topo) checkJobs() {
 			vertices = append(vertices, vname)
 		}
 
-		if len(vertices) == 0 {
-			if unfinished == 0 {
-				return
-			}
-			continue
-		}
-
-		collected += len(vertices)
-		unfinished += len(vertices)
 		for _, vname := range vertices {
 			t.jobCh <- vname
 		}

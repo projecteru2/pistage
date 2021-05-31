@@ -184,53 +184,6 @@ func TestTopologyStream4(t *testing.T) {
 	assert := assert.New(t)
 
 	tp := newTopo()
-	// cycle here
-	tp.addDependencies("C", "A", "B", "I")
-	tp.addDependencies("D", "C", "E")
-	tp.addDependencies("I", "D")
-	tp.addDependencies("E", "B", "G", "H")
-
-	jobs, finished, finish := tp.stream()
-	result := make(chan string)
-	r := []string{}
-
-	wg1 := sync.WaitGroup{}
-	wg1.Add(1)
-	go func() {
-		defer wg1.Done()
-		for e := range result {
-			r = append(r, e)
-		}
-	}()
-
-	wg2 := sync.WaitGroup{}
-	for job := range jobs {
-		wg2.Add(1)
-		go func(job string) {
-			defer func() {
-				finished <- job
-				wg2.Done()
-			}()
-			result <- job
-		}(job)
-	}
-	wg2.Wait()
-	finish()
-
-	close(result)
-	wg1.Wait()
-
-	// error
-	// only 5 vertices returned
-	// and the highest level of execution is E
-	assert.Equal(len(r), 5)
-	assert.Equal(r[len(r)-1], "E")
-}
-
-func TestTopologyStream5(t *testing.T) {
-	assert := assert.New(t)
-
-	tp := newTopo()
 	tp.addDependencies("A", "B")
 	tp.addDependencies("B", "C")
 	tp.addDependencies("C", "D")
@@ -268,4 +221,24 @@ func TestTopologyStream5(t *testing.T) {
 
 	assert.Equal(len(r), 3)
 	assert.Equal(r, []string{"E", "D", "C"})
+}
+
+func TestTopologyCyclic(t *testing.T) {
+	assert := assert.New(t)
+
+	tp1 := newTopo()
+	// cycle here
+	tp1.addDependencies("C", "A", "B", "I")
+	tp1.addDependencies("D", "C", "E")
+	tp1.addDependencies("I", "D")
+	tp1.addDependencies("E", "B", "G", "H")
+	assert.Error(tp1.checkCyclic())
+
+	tp2 := newTopo()
+	tp2.addDependencies("D", "A", "B", "C")
+	tp2.addDependencies("E", "D", "C", "F", "H")
+	tp2.addDependencies("H", "G")
+	tp2.addDependencies("F", "M")
+	tp2.addDependencies("G", "M")
+	assert.NoError(tp2.checkCyclic())
 }

@@ -62,8 +62,17 @@ func (s *StageServer) runner(id int) {
 			logrus.WithField("runner id", id).Info("[Stager] runner stopped")
 			return
 		case pt := <-s.stages:
-			if err := s.runWithGraph(pt); err != nil {
+			// if err := s.runWithGraph(pt); err != nil {
+			// 	logrus.WithField("phistage", pt.Phistage.Name).WithError(err).Errorf("[Stager runner] error when running a phistage")
+			// }
+			if err := s.runWithStream(pt); err != nil {
 				logrus.WithField("phistage", pt.Phistage.Name).WithError(err).Errorf("[Stager runner] error when running a phistage")
+			}
+
+			// We need to close the Output here, indicating the phistage is finished,
+			// all logs are written into this Output.
+			if err := pt.Output.Close(); err != nil {
+				logrus.WithField("phistage", pt.Phistage.Name).WithError(err).Errorf("[Stager runner] error when closing the output writer")
 			}
 			runtime.GC()
 		}
@@ -115,6 +124,60 @@ func (s *StageServer) runWithGraph(pt *common.PhistageTask) error {
 			logger.WithError(err).Errorf("[Stager runWithGraph] error occurred, skip following jobs")
 			return err
 		}
+	}
+	return nil
+}
+
+func (s *StageServer) runWithStream(pt *common.PhistageTask) error {
+	phistage := pt.Phistage
+	logger := logrus.WithField("phistage", phistage.Name)
+
+	if err := s.store.CreatePhistage(context.TODO(), phistage); err != nil {
+		logger.WithError(err).Error("[Stager runWithStream] fail to create Phistage")
+		return err
+	}
+
+	run := &common.Run{
+		Phistage: phistage.Name,
+		Start:    time.Now(),
+	}
+	if err := s.store.CreateRun(context.TODO(), run); err != nil {
+		logger.WithError(err).Error("[Stager runWithStream] fail to create Run")
+		return err
+	}
+
+	defer func() {
+		run.End = time.Now()
+		if err := s.store.UpdateRun(context.TODO(), run); err != nil {
+			logger.WithError(err).Errorf("[Stager runWithStream] error update Run")
+		}
+	}()
+
+	once := sync.Once{}
+
+	jobs, finished, finish := phistage.JobStream()
+	defer once.Do(finish)
+
+	wg := sync.WaitGroup{}
+	defer wg.Wait()
+
+	for jobName := range jobs {
+		job, err := phistage.GetJob(jobName)
+		if err != nil {
+			logger.WithError(err).Error("[Stager runWithStream] fail to get Job")
+			return err
+		}
+
+		wg.Add(1)
+		go func(job *common.Job) {
+			defer wg.Done()
+			if err = s.runOneJob(phistage, job, run, pt.Output); err != nil {
+				logger.WithError(err).Errorf("[Stager runWithStream] error occurred, skip following jobs")
+				once.Do(finish)
+				return
+			}
+			finished <- job.Name
+		}(job)
 	}
 	return nil
 }

@@ -21,7 +21,7 @@ func initEru(config *common.Config, store store.Store) error {
 
 // initShell initializes shell executor provider.
 func initShell(config *common.Config, store store.Store) error {
-	localshellProvider, err := shell.NewLocalShellJobExecutorProvider(config, store)
+	localshellProvider, err := shell.NewShellJobExecutorProvider(config, store)
 	if err != nil {
 		return err
 	}

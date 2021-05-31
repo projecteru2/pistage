@@ -73,9 +73,8 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPhistageRe
 		return nil, err
 	}
 
-	// use io.Discard to write output to.
-	// or os.DevNull.
-	g.stager.Add(&common.PhistageTask{Phistage: phistage, Output: io.Discard})
+	// Discard the output
+	g.stager.Add(&common.PhistageTask{Phistage: phistage, Output: common.ClosableDiscard})
 	return &proto.ApplyPhistageOnewayReply{
 		Name:    phistage.Name,
 		Success: err == nil,
@@ -88,8 +87,11 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPhistageRequest, stream proto.P
 		return err
 	}
 
+	// We use a pipe here to retrieve the logs across all jobs within this phistage.
+	// Use common.DonCloseWriter to avoid writing end of the pipe being closed by LogTracer.
+	// It's a little bit tricky here...
 	r, w := io.Pipe()
-	g.stager.Add(&common.PhistageTask{Phistage: phistage, Output: w})
+	g.stager.Add(&common.PhistageTask{Phistage: phistage, Output: common.DonCloseWriter{Writer: w}})
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
