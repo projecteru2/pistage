@@ -3,8 +3,10 @@ module github.com/projecteru2/phistage
 go 1.16
 
 require (
+	github.com/alicebob/miniredis/v2 v2.14.5 // indirect
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/flosch/pongo2/v4 v4.0.2
+	github.com/go-redis/redis/v8 v8.10.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.0
 	github.com/projecteru2/core v0.0.0-20210511020756-ac19e3989237
