@@ -1,7 +1,6 @@
 package ssh
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -9,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/pkg/sftp"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 
@@ -96,8 +94,22 @@ func executeCommand(client *ssh.Client, cmd, home string, envs map[string]string
 	return session.Run(commandToExecute)
 }
 
-// Prepare creates a working dir for this job.
+// Prepare does all the preparations before actually running a job
 func (s *SSHJobExecutor) Prepare(ctx context.Context) error {
+	preparations := []func(context.Context) error{
+		s.prepareJobRuntime,
+		s.prepareFileContext,
+	}
+	for _, f := range preparations {
+		if err := f(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// prepareJobRuntime creates a working dir for this job.
+func (s *SSHJobExecutor) prepareJobRuntime(ctx context.Context) error {
 	digest, err := helpers.Sha1HexDigest(fmt.Sprintf("%s:%s", s.phistage.Name, s.job.Name))
 	if err != nil {
 		return err
@@ -110,6 +122,20 @@ func (s *SSHJobExecutor) Prepare(ctx context.Context) error {
 	}
 
 	s.workingDir = workingDir
+	return nil
+}
+
+func (s *SSHJobExecutor) prepareFileContext(ctx context.Context) error {
+	dependentJobs := s.phistage.GetJobs(s.job.DependsOn)
+	for _, job := range dependentJobs {
+		fc := job.GetFileCollector()
+		if fc == nil {
+			continue
+		}
+		if err := fc.CopyTo(ctx, s.workingDir, nil); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -235,57 +261,15 @@ func (s *SSHJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 	khoriumStepWorkingDir := filepath.Join(s.home, sshExecutorKhoriumStepRootWorkingDir, digest)
 	defer s.cleanupDir(khoriumStepWorkingDir)
 
-	files := map[string][]byte{}
-	for name, content := range ks.Files {
-		files[filepath.Join(khoriumStepWorkingDir, name)] = content
-	}
-	if err := s.createNecessaryDirs(ctx, files); err != nil {
-		return err
-	}
-
-	if err := s.sendFiles(files); err != nil {
+	fc := NewSSHFileCollector(s.client)
+	fc.SetFiles(ks.Files)
+	if err := fc.CopyTo(ctx, khoriumStepWorkingDir, nil); err != nil {
 		return err
 	}
 
 	// Now we can execute the script written in specification.
 	if err := executeCommand(s.client, ks.Run.Main, khoriumStepWorkingDir, envs, s.output); err != nil {
 		return errors.WithMessagef(common.ErrExecutionError, "exec error: %v", err)
-	}
-	return nil
-}
-
-// createNecessaryDirs creates essential dirs for files.
-func (s *SSHJobExecutor) createNecessaryDirs(ctx context.Context, files map[string][]byte) error {
-	// golang is really, really stupid
-	dirs := map[string]struct{}{}
-	for path := range files {
-		dirs[filepath.Dir(path)] = struct{}{}
-	}
-
-	dirnames := []string{}
-	for path := range dirs {
-		dirnames = append(dirnames, path)
-	}
-	paths := strings.Join(dirnames, " ")
-	cmd := fmt.Sprintf("mkdir -p %s", paths)
-	return executeCommand(s.client, cmd, s.workingDir, nil, io.Discard)
-}
-
-func (s *SSHJobExecutor) sendFiles(files map[string][]byte) error {
-	client, err := sftp.NewClient(s.client)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	for path, content := range files {
-		local := bytes.NewBuffer(content)
-		remote, err := client.Create(path)
-		if err != nil {
-			return err
-		}
-		io.Copy(remote, local)
-		remote.Close()
 	}
 	return nil
 }
@@ -318,15 +302,44 @@ func (s *SSHJobExecutor) executeCommands(ctx context.Context, cmds []string, arg
 	return nil
 }
 
+// beforeCleanup collects files
+func (s *SSHJobExecutor) beforeCleanup(ctx context.Context) error {
+	if len(s.job.Files) == 0 {
+		return nil
+	}
+
+	fc := NewSSHFileCollector(s.client)
+	if err := fc.Collect(ctx, s.workingDir, s.job.Files); err != nil {
+		return err
+	}
+
+	s.job.SetFileCollector(fc)
+	return nil
+}
+
 func (s *SSHJobExecutor) cleanupDir(dir string) error {
 	cmd := fmt.Sprintf("rm -rf %s", dir)
 	return executeCommand(s.client, cmd, s.workingDir, nil, io.Discard)
 }
 
-// Cleanup removes the working dir.
-func (s *SSHJobExecutor) Cleanup(ctx context.Context) error {
+// cleanup removes the working dir.
+func (s *SSHJobExecutor) cleanup(ctx context.Context) error {
 	if s.workingDir == "" {
 		return nil
 	}
 	return s.cleanupDir(s.workingDir)
+}
+
+// Cleanup does all the cleanup work
+func (ls *SSHJobExecutor) Cleanup(ctx context.Context) error {
+	cleanups := []func(context.Context) error{
+		ls.beforeCleanup,
+		ls.cleanup,
+	}
+	for _, f := range cleanups {
+		if err := f(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }

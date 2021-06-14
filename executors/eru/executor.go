@@ -265,10 +265,6 @@ func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 		files[filepath.Join(khoriumStepWorkingDir, name)] = content
 	}
 
-	if err := e.createNecessaryDirs(ctx, files); err != nil {
-		return err
-	}
-
 	fc := NewEruFileCollector(e.eru)
 	fc.SetFiles(files)
 	if err := fc.CopyTo(ctx, e.workloadID, nil); err != nil {
@@ -310,58 +306,6 @@ func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 		} else {
 			if _, err := io.WriteString(e.output, data); err != nil {
 				return err
-			}
-		}
-	}
-	return exec.CloseSend()
-}
-
-// createNecessaryDirs is a little tricky used by ERU.
-// Since ERU doesn't provide a `docker cp -` like feature,
-// we must ensure all the dirs of the files we send to container exist.
-// So we use this function to create all dirs.
-func (e *EruJobExecutor) createNecessaryDirs(ctx context.Context, files map[string][]byte) error {
-	// golang is really, really stupid
-	dirs := map[string]struct{}{}
-	for path := range files {
-		dirs[filepath.Dir(path)] = struct{}{}
-	}
-
-	shell := []string{"/bin/mkdir", "-p"}
-	for path := range dirs {
-		shell = append(shell, path)
-	}
-
-	exec, err := e.eru.ExecuteWorkload(ctx)
-	if err != nil {
-		return err
-	}
-
-	if err := exec.Send(&corepb.ExecuteWorkloadOptions{
-		WorkloadId: e.workloadID,
-		Commands:   shell,
-		Workdir:    "/",
-	}); err != nil {
-		return err
-	}
-
-	for {
-		message, err := exec.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		data := string(message.Data)
-		if strings.HasPrefix(data, exitMessagePrefix) {
-			exitcode, err := strconv.Atoi(strings.TrimPrefix(data, exitMessagePrefix))
-			if err != nil {
-				return err
-			}
-			if exitcode != 0 {
-				return errors.WithMessagef(common.ErrExecutionError, "exitcode: %d", exitcode)
 			}
 		}
 	}

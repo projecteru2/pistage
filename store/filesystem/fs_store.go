@@ -20,19 +20,21 @@ import (
 )
 
 type FileSystemStore struct {
-	root      string
-	mutex     sync.Mutex
-	snowflake *snowflake.Node
+	root           string
+	mutex          sync.Mutex
+	snowflake      *snowflake.Node
+	khoriumManager *store.KhoriumManager
 }
 
-func NewFileSystemStore(root string) (*FileSystemStore, error) {
+func NewFileSystemStore(root string, khoriumManager *store.KhoriumManager) (*FileSystemStore, error) {
 	sn, err := store.NewSnowflake()
 	if err != nil {
 		return nil, err
 	}
 	return &FileSystemStore{
-		root:      root,
-		snowflake: sn,
+		root:           root,
+		snowflake:      sn,
+		khoriumManager: khoriumManager,
 	}, nil
 }
 
@@ -479,7 +481,7 @@ func (fs *FileSystemStore) RegisterKhoriumStep(ctx context.Context, ks *common.K
 
 // ${root}/registered/khoriumstep/${sha1 of step name}/khoriumstep.yml
 // ${root}/registered/khoriumstep/${sha1 of step name}/...
-func (fs *FileSystemStore) GetRegisteredKhoriumStep(ctx context.Context, name string) (*common.KhoriumStep, error) {
+func (fs *FileSystemStore) GetRegisteredKhoriumStep2(ctx context.Context, name string) (*common.KhoriumStep, error) {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
@@ -518,4 +520,8 @@ func (fs *FileSystemStore) GetRegisteredKhoriumStep(ctx context.Context, name st
 		return nil, err
 	}
 	return ks, nil
+}
+
+func (fs *FileSystemStore) GetRegisteredKhoriumStep(ctx context.Context, name string) (*common.KhoriumStep, error) {
+	return fs.khoriumManager.GetKhoriumStep(ctx, name)
 }

@@ -18,7 +18,7 @@ var ErrorStorageNotSpecified = errors.New("Storage not specified")
 func InitStorage(config *common.Config) (store.Store, error) {
 	switch config.Storage.Type {
 	case "file":
-		return filesystem.NewFileSystemStore(config.Storage.FileSystemStoreRoot)
+		return filesystem.NewFileSystemStore(config.Storage.FileSystemStoreRoot, store.NewKhoriumManager(config.Khorium))
 	default:
 		return nil, ErrorStorageNotSpecified
 	}

@@ -18,6 +18,7 @@ type Config struct {
 	Eru     EruConfig     `yaml:"eru"`
 	SSH     SSHConfig     `yaml:"ssh"`
 	Storage StorageConfig `yaml:"storage"`
+	Khorium KhoriumConfig `yaml:"khorium"`
 }
 
 type EruConfig struct {
@@ -41,6 +42,11 @@ type SSHConfig struct {
 type StorageConfig struct {
 	Type                string `yaml:"type"`
 	FileSystemStoreRoot string `yaml:"filesystem_store_root"`
+}
+
+type KhoriumConfig struct {
+	GitLabUsername    string `yaml:"gitlab_username"`
+	GitLabAccessToken string `yaml:"gitlab_access_token"`
 }
 
 func (c *Config) initDefault() {

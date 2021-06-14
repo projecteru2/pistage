@@ -6,14 +6,21 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
 	corepb "github.com/projecteru2/core/rpc/gen"
+	"github.com/projecteru2/phistage/common"
 )
 
 var ErrorCopyToContainer = errors.New("Error copy to container")
 
+// EruFileCollector collects or sends files from or to workload.
+// Note: the paths of files are absolute.
+// TODO: use relative paths, too.
 type EruFileCollector struct {
 	mutex     sync.Mutex
 	filesLock sync.Mutex
@@ -35,7 +42,10 @@ func (e *EruFileCollector) SetFiles(files map[string][]byte) {
 	e.files = files
 }
 
-func (e *EruFileCollector) Collect(ctx context.Context, workloadID string, files []string) error {
+// Collect collects files from the workload.
+// For an EruFileCollector, identifier represents the workload id.
+// All paths in files should be absolute, or related to the current working dir.
+func (e *EruFileCollector) Collect(ctx context.Context, identifier string, files []string) error {
 	if len(files) == 0 {
 		return nil
 	}
@@ -46,7 +56,7 @@ func (e *EruFileCollector) Collect(ctx context.Context, workloadID string, files
 	var err error
 	resp, err := e.eru.Copy(ctx, &corepb.CopyOptions{
 		Targets: map[string]*corepb.CopyPaths{
-			workloadID: {Paths: files},
+			identifier: {Paths: files},
 		},
 	})
 	if err != nil {
@@ -130,7 +140,10 @@ func (e *EruFileCollector) Collect(ctx context.Context, workloadID string, files
 	return nil
 }
 
-func (e *EruFileCollector) CopyTo(ctx context.Context, workloadID string, files []string) error {
+// CopyTo copies files to the workload.
+// For an EruFileCollector, identifier represents the workload id.
+// All paths in files should be absolute, or related to the current working dir.
+func (e *EruFileCollector) CopyTo(ctx context.Context, identifier string, files []string) error {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
@@ -147,8 +160,12 @@ func (e *EruFileCollector) CopyTo(ctx context.Context, workloadID string, files 
 		return nil
 	}
 
+	if err := e.createEssentialDirs(ctx, identifier, data); err != nil {
+		return err
+	}
+
 	resp, err := e.eru.Send(ctx, &corepb.SendOptions{
-		Ids:  []string{workloadID},
+		Ids:  []string{identifier},
 		Data: data,
 	})
 	if err != nil {
@@ -168,6 +185,57 @@ func (e *EruFileCollector) CopyTo(ctx context.Context, workloadID string, files 
 		}
 	}
 	return nil
+}
+
+// createEssentialDirs creates all the necessary directories for files.
+// Since ERU doesn't provide a `docker cp -` like feature,
+// we must ensure all the dirs of the files we send to container exist.
+// So we use this function to create all dirs.
+func (e *EruFileCollector) createEssentialDirs(ctx context.Context, identifier string, files map[string][]byte) error {
+	dirs := map[string]struct{}{}
+	for path := range files {
+		dirs[filepath.Dir(path)] = struct{}{}
+	}
+
+	shell := []string{"/bin/mkdir", "-p"}
+	for path := range dirs {
+		shell = append(shell, path)
+	}
+
+	exec, err := e.eru.ExecuteWorkload(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := exec.Send(&corepb.ExecuteWorkloadOptions{
+		WorkloadId: identifier,
+		Commands:   shell,
+		Workdir:    "/",
+	}); err != nil {
+		return err
+	}
+
+	for {
+		message, err := exec.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		data := string(message.Data)
+		if strings.HasPrefix(data, exitMessagePrefix) {
+			exitcode, err := strconv.Atoi(strings.TrimPrefix(data, exitMessagePrefix))
+			if err != nil {
+				return err
+			}
+			if exitcode != 0 {
+				return errors.WithMessagef(common.ErrExecutionError, "exitcode: %d", exitcode)
+			}
+		}
+	}
+	return exec.CloseSend()
 }
 
 // Files returns all file names including path this collector holds.

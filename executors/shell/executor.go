@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -42,11 +41,39 @@ func NewShellJobExecutor(job *common.Job, phistage *common.Phistage, output io.W
 	}, nil
 }
 
-// Prepare creates a temp working dir for this job.
+// Prepare does all the preparations before actually running a job
 func (ls *ShellJobExecutor) Prepare(ctx context.Context) error {
+	preparations := []func(context.Context) error{
+		ls.prepareJobRuntime,
+		ls.prepareFileContext,
+	}
+	for _, f := range preparations {
+		if err := f(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Prepare creates a temp working dir for this job.
+func (ls *ShellJobExecutor) prepareJobRuntime(ctx context.Context) error {
 	var err error
 	ls.workingDir, err = ioutil.TempDir("", "phistage-*")
 	return err
+}
+
+func (ls *ShellJobExecutor) prepareFileContext(ctx context.Context) error {
+	dependentJobs := ls.phistage.GetJobs(ls.job.DependsOn)
+	for _, job := range dependentJobs {
+		fc := job.GetFileCollector()
+		if fc == nil {
+			continue
+		}
+		if err := fc.CopyTo(ctx, ls.workingDir, nil); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // defaultEnvironmentVariables sets some useful information into environment variables.
@@ -168,15 +195,9 @@ func (ls *ShellJobExecutor) executeKhoriumStep(ctx context.Context, step *common
 	}
 	defer os.RemoveAll(khoriumStepWorkingDir)
 
-	files := map[string][]byte{}
-	for name, content := range ks.Files {
-		files[filepath.Join(khoriumStepWorkingDir, name)] = content
-	}
-	if err := ls.createNecessaryDirs(ctx, files); err != nil {
-		return err
-	}
-
-	if err := ls.writeFiles(files); err != nil {
+	fc := NewShellFileCollector()
+	fc.SetFiles(ks.Files)
+	if err := fc.CopyTo(ctx, khoriumStepWorkingDir, nil); err != nil {
 		return err
 	}
 
@@ -189,39 +210,6 @@ func (ls *ShellJobExecutor) executeKhoriumStep(ctx context.Context, step *common
 		return errors.WithMessagef(common.ErrExecutionError, "exec error: %v", err)
 	}
 	return nil
-}
-
-func (ls *ShellJobExecutor) writeFiles(files map[string][]byte) error {
-	for path, content := range files {
-		f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-		if err != nil {
-			return err
-		}
-		if _, err := f.Write(content); err != nil {
-			return err
-		}
-		if err := f.Close(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// createNecessaryDirs creates essential dirs for files,
-// otherwise error occurs when we open files for writting.
-func (ls *ShellJobExecutor) createNecessaryDirs(ctx context.Context, files map[string][]byte) error {
-	// golang is really, really stupid
-	dirs := map[string]struct{}{}
-	for path := range files {
-		dirs[filepath.Dir(path)] = struct{}{}
-	}
-
-	dirnames := []string{"-p"}
-	for path := range dirs {
-		dirnames = append(dirnames, path)
-	}
-
-	return exec.CommandContext(ctx, "/bin/mkdir", dirnames...).Run()
 }
 
 // executeCommands executes cmd with given arguments, environments and variables.
@@ -253,7 +241,36 @@ func (ls *ShellJobExecutor) executeCommands(ctx context.Context, cmds []string, 
 	return nil
 }
 
-// Cleanup removes the temp working dir.
-func (ls *ShellJobExecutor) Cleanup(ctx context.Context) error {
+// beforeCleanup collects files
+func (ls *ShellJobExecutor) beforeCleanup(ctx context.Context) error {
+	if len(ls.job.Files) == 0 {
+		return nil
+	}
+
+	fc := NewShellFileCollector()
+	if err := fc.Collect(ctx, ls.workingDir, ls.job.Files); err != nil {
+		return err
+	}
+
+	ls.job.SetFileCollector(fc)
+	return nil
+}
+
+// cleanup removes the temp working dir.
+func (ls *ShellJobExecutor) cleanup(ctx context.Context) error {
 	return os.RemoveAll(ls.workingDir)
+}
+
+// Cleanup does all the cleanup work
+func (ls *ShellJobExecutor) Cleanup(ctx context.Context) error {
+	cleanups := []func(context.Context) error{
+		ls.beforeCleanup,
+		ls.cleanup,
+	}
+	for _, f := range cleanups {
+		if err := f(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
