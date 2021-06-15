@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/projecteru2/phistage/helpers"
@@ -45,7 +46,12 @@ func (s *ShellFileCollector) Collect(ctx context.Context, identifier string, fil
 	defer s.mutex.Unlock()
 
 	for _, file := range files {
-		content, err := ioutil.ReadFile(filepath.Join(identifier, file))
+		path := filepath.Join(identifier, file)
+		// We don't allow to collect files outside identifier.
+		if !strings.HasPrefix(path, identifier) {
+			continue
+		}
+		content, err := ioutil.ReadFile(path)
 		if err != nil {
 			return err
 		}
@@ -65,7 +71,11 @@ func (s *ShellFileCollector) CopyTo(ctx context.Context, identifier string, file
 	if len(files) == 0 {
 		data = s.files
 	} else {
-		for filename, content := range s.files {
+		for _, filename := range files {
+			content, ok := s.files[filename]
+			if !ok {
+				continue
+			}
 			data[filename] = content
 		}
 	}
@@ -77,6 +87,10 @@ func (s *ShellFileCollector) CopyTo(ctx context.Context, identifier string, file
 	for file, content := range data {
 		// create the essential directory.
 		path := filepath.Join(identifier, file)
+		// We don't allow to copy files to outside of identifier.
+		if !strings.HasPrefix(path, identifier) {
+			continue
+		}
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 			return err
 		}

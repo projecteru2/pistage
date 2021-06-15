@@ -56,7 +56,13 @@ func (s *SSHFileCollector) Collect(ctx context.Context, identifier string, files
 	defer sc.Close()
 
 	for _, file := range files {
-		f, err := sc.Open(filepath.Join(identifier, file))
+		path := filepath.Join(identifier, file)
+		// We don't allow to collect files outside identifier.
+		if !strings.HasPrefix(path, identifier) {
+			continue
+		}
+
+		f, err := sc.Open(path)
 		if err != nil {
 			return err
 		}
@@ -81,7 +87,11 @@ func (s *SSHFileCollector) CopyTo(ctx context.Context, identifier string, files 
 	if len(files) == 0 {
 		data = s.files
 	} else {
-		for filename, content := range s.files {
+		for _, filename := range files {
+			content, ok := s.files[filename]
+			if !ok {
+				continue
+			}
 			data[filename] = content
 		}
 	}
@@ -100,8 +110,14 @@ func (s *SSHFileCollector) CopyTo(ctx context.Context, identifier string, files 
 		return err
 	}
 	for file, content := range data {
+		path := filepath.Join(identifier, file)
+		// We don't allow to copy files to outside of identifier.
+		if !strings.HasPrefix(path, identifier) {
+			continue
+		}
+
 		local := bytes.NewBuffer(content)
-		remote, err := sc.Create(filepath.Join(identifier, file))
+		remote, err := sc.Create(path)
 		if err != nil {
 			return err
 		}

@@ -77,9 +77,15 @@ func (k *KhoriumManager) cloneRepository(ctx context.Context, name, version, pat
 	}
 
 	// checkout
-	cmd := exec.CommandContext(ctx, "git", "checkout", version)
-	cmd.Dir = path
-	return cmd.Run()
+	checkout := exec.CommandContext(ctx, "git", "checkout", version)
+	checkout.Dir = path
+	if err := checkout.Run(); err != nil {
+		return err
+	}
+
+	cleanup := exec.CommandContext(ctx, "rm", "-rf", ".git")
+	cleanup.Dir = path
+	return cleanup.Run()
 }
 
 func (k *KhoriumManager) loadKhoriumStepFromFilesystem(path string) (*common.KhoriumStep, error) {
@@ -104,7 +110,7 @@ func (k *KhoriumManager) loadKhoriumStepFromFilesystem(path string) (*common.Kho
 		if err != nil {
 			return err
 		}
-		ks.Files[strings.TrimPrefix(file, path)] = c
+		ks.Files[strings.TrimPrefix(file, path+"/")] = c
 		return nil
 	}
 

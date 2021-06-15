@@ -19,19 +19,28 @@ import (
 var ErrorCopyToContainer = errors.New("Error copy to container")
 
 // EruFileCollector collects or sends files from or to workload.
-// Note: the paths of files are absolute.
-// TODO: use relative paths, too.
+// Note: the paths of files are relative to working root, or absolute from working root.
 type EruFileCollector struct {
 	mutex     sync.Mutex
 	filesLock sync.Mutex
 	eru       corepb.CoreRPCClient
-	files     map[string][]byte
+
+	// files kept in collector.
+	// The names are **RELATIVE** to root.
+	files map[string][]byte
+
+	// root is the root dir of this file collector.
+	// This should be **ABSOLUTE**.
+	root string
 }
 
-func NewEruFileCollector(eru corepb.CoreRPCClient) *EruFileCollector {
+// NewEruFileCollector creates an EruFileCollector,
+// note that root must be an absolute path.
+func NewEruFileCollector(eru corepb.CoreRPCClient, root string) *EruFileCollector {
 	return &EruFileCollector{
 		eru:   eru,
 		files: map[string][]byte{},
+		root:  root,
 	}
 }
 
@@ -53,10 +62,26 @@ func (e *EruFileCollector) Collect(ctx context.Context, identifier string, files
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
-	var err error
+	var (
+		err   error
+		paths []string
+	)
+
+	for _, file := range files {
+		path := filepath.Join(e.root, file)
+		// We don't allow files out of e.root to be collected.
+		if !strings.HasPrefix(path, e.root) {
+			continue
+		}
+		paths = append(paths, path)
+	}
+	if len(paths) == 0 {
+		return nil
+	}
+
 	resp, err := e.eru.Copy(ctx, &corepb.CopyOptions{
 		Targets: map[string]*corepb.CopyPaths{
-			identifier: {Paths: files},
+			identifier: {Paths: paths},
 		},
 	})
 	if err != nil {
@@ -69,7 +94,7 @@ func (e *EruFileCollector) Collect(ctx context.Context, identifier string, files
 		wg          = sync.WaitGroup{}
 	)
 
-	for _, file := range files {
+	for _, file := range paths {
 		reader, writer := io.Pipe()
 		filereaders[file] = reader
 		filewriters[file] = writer
@@ -128,7 +153,7 @@ func (e *EruFileCollector) Collect(ctx context.Context, identifier string, files
 						return
 					}
 					e.filesLock.Lock()
-					e.files[path] = buffer.Bytes()
+					e.files[strings.TrimPrefix(path, e.root+"/")] = buffer.Bytes()
 					e.filesLock.Unlock()
 				default:
 				}
@@ -147,13 +172,24 @@ func (e *EruFileCollector) CopyTo(ctx context.Context, identifier string, files 
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
-	data := map[string][]byte{}
 	if len(files) == 0 {
-		data = e.files
-	} else {
-		for filename, content := range e.files {
-			data[filename] = content
+		for name := range e.files {
+			files = append(files, name)
 		}
+	}
+
+	data := map[string][]byte{}
+	for _, filename := range files {
+		content, ok := e.files[filename]
+		if !ok {
+			continue
+		}
+		path := filepath.Join(e.root, filename)
+		// We don't allow to copy files out of working dir.
+		if !strings.HasPrefix(path, e.root) {
+			continue
+		}
+		data[path] = content
 	}
 
 	if len(data) == 0 {

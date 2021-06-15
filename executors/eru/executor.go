@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -40,6 +39,7 @@ type EruJobExecutor struct {
 	output         io.Writer
 	workloadID     string
 	jobEnvironment map[string]string
+	workingDir     string
 }
 
 // NewEruJobExecutor creates an ERU executor for this job.
@@ -53,6 +53,7 @@ func NewEruJobExecutor(job *common.Job, phistage *common.Phistage, output io.Wri
 		phistage:       phistage,
 		output:         output,
 		jobEnvironment: phistage.Environment,
+		workingDir:     config.Eru.DefaultWorkingDir,
 	}, nil
 }
 
@@ -107,7 +108,7 @@ func (e *EruJobExecutor) prepareJobRuntime(ctx context.Context) error {
 // This will be set to the whole running context within the workload.
 func (e *EruJobExecutor) defaultEnvironmentVariables() map[string]string {
 	return map[string]string{
-		"PHISTAGE_WORKING_DIR": e.config.Eru.DefaultWorkingDir,
+		"PHISTAGE_WORKING_DIR": e.workingDir,
 		"PHISTAGE_JOB_NAME":    e.job.Name,
 	}
 }
@@ -128,7 +129,7 @@ func (e *EruJobExecutor) buildEruLambdaOptions() *corepb.RunAndWaitOptions {
 				Name:       e.job.Name,
 				Commands:   command.EmptyWorkloadCommand(e.job.Timeout),
 				Privileged: e.config.Eru.DefaultPrivileged,
-				Dir:        e.config.Eru.DefaultWorkingDir,
+				Dir:        e.workingDir,
 			},
 			Podname:        e.config.Eru.DefaultPodname,
 			Image:          jobImage,
@@ -260,13 +261,8 @@ func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 	}
 	envs := command.MergeVariables(step.Environment, ksEnv)
 
-	files := map[string][]byte{}
-	for name, content := range ks.Files {
-		files[filepath.Join(khoriumStepWorkingDir, name)] = content
-	}
-
-	fc := NewEruFileCollector(e.eru)
-	fc.SetFiles(files)
+	fc := NewEruFileCollector(e.eru, khoriumStepWorkingDir)
+	fc.SetFiles(ks.Files)
 	if err := fc.CopyTo(ctx, e.workloadID, nil); err != nil {
 		return err
 	}
@@ -380,13 +376,8 @@ func (e *EruJobExecutor) beforeCleanup(ctx context.Context) error {
 		return nil
 	}
 
-	var files []string
-	for _, file := range e.job.Files {
-		files = append(files, filepath.Join(e.config.Eru.DefaultWorkingDir, file))
-	}
-
-	fc := NewEruFileCollector(e.eru)
-	if err := fc.Collect(ctx, e.workloadID, files); err != nil {
+	fc := NewEruFileCollector(e.eru, e.workingDir)
+	if err := fc.Collect(ctx, e.workloadID, e.job.Files); err != nil {
 		return err
 	}
 
