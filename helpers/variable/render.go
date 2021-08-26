@@ -10,17 +10,17 @@ import (
 var (
 	varsRe = regexp.MustCompile(`(?U){{\s*(\$env|\$vars).*}}`)
 
-	phistageEnvVarName  = "__phistage_env__"
-	phistageVarsVarName = "__phistage_vars__"
+	pistageEnvVarName  = "__pistage_env__"
+	pistageVarsVarName = "__pistage_vars__"
 )
 
-// ReplaceVariables replaces variables startswith $ provided by phistage
-// to phistage private variables, which will later be renderred.
+// ReplaceVariables replaces variables startswith $ provided by pistage
+// to pistage private variables, which will later be renderred.
 func ReplaceVariables(t string) string {
 	return varsRe.ReplaceAllStringFunc(t, func(m string) string {
 		r := m
-		r = strings.Replace(r, "$env", phistageEnvVarName, 1)
-		r = strings.Replace(r, "$vars", phistageVarsVarName, 1)
+		r = strings.Replace(r, "$env", pistageEnvVarName, 1)
+		r = strings.Replace(r, "$vars", pistageVarsVarName, 1)
 		return r
 	})
 }
@@ -29,8 +29,8 @@ func ReplaceVariables(t string) string {
 // for rendering the template
 func BuildTemplateContext(arguments, envs, vars map[string]string) pongo2.Context {
 	context := pongo2.Context{
-		phistageEnvVarName:  envs,
-		phistageVarsVarName: vars,
+		pistageEnvVarName:  envs,
+		pistageVarsVarName: vars,
 	}
 	for k, v := range arguments {
 		context[k] = v

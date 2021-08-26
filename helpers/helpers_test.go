@@ -24,7 +24,7 @@ func TestSha1HexDigest(t *testing.T) {
 func TestFileOperations(t *testing.T) {
 	assert := assert.New(t)
 
-	root, err := ioutil.TempDir("", "phistage-*")
+	root, err := ioutil.TempDir("", "pistage-*")
 	assert.NoError(err)
 	defer os.RemoveAll(root)
 

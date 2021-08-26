@@ -3,9 +3,9 @@ package shell
 import (
 	"io"
 
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/executors"
-	"github.com/projecteru2/phistage/store"
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/executors"
+	"github.com/projecteru2/pistage/store"
 )
 
 type ShellJobExecutorProvider struct {
@@ -24,6 +24,6 @@ func (ls *ShellJobExecutorProvider) GetName() string {
 	return "shell"
 }
 
-func (ls *ShellJobExecutorProvider) GetJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer) (executors.JobExecutor, error) {
-	return NewShellJobExecutor(job, phistage, output, ls.store, ls.config)
+func (ls *ShellJobExecutorProvider) GetJobExecutor(job *common.Job, pistage *common.Pistage, output io.Writer) (executors.JobExecutor, error) {
+	return NewShellJobExecutor(job, pistage, output, ls.store, ls.config)
 }

@@ -10,7 +10,7 @@ var ErrorNotDAG = errors.New("Input should be a DAG")
 
 // no priority queue is used
 // since the data won't be too large
-// beside our destination differs from topology sorting
+// besides our destination differs from topology sorting
 type topo struct {
 	vertices map[string]int
 	edges    map[string][]string

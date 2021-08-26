@@ -9,7 +9,7 @@ import (
 
 var ErrorJobNotFound = errors.New("Job not found")
 
-type Phistage struct {
+type Pistage struct {
 	Name        string            `yaml:"name" json:"name"`
 	Jobs        map[string]*Job   `yaml:"jobs" json:"jobs"`
 	Environment map[string]string `yaml:"env" json:"env"`
@@ -17,14 +17,14 @@ type Phistage struct {
 }
 
 // init set name to all jobs.
-func (p *Phistage) init() {
+func (p *Pistage) init() {
 	for jobName, job := range p.Jobs {
 		job.Name = jobName
 	}
 }
 
 // validate currently checks only if the dependency graph contains a cycle.
-func (p *Phistage) validate() error {
+func (p *Pistage) validate() error {
 	tp := newTopo()
 	for _, job := range p.Jobs {
 		tp.addDependencies(job.Name, job.DependsOn...)
@@ -44,7 +44,7 @@ func (p *Phistage) validate() error {
 // this means A and B can be executed parallelly, C needs to be waited till A and B finished,
 // then D and E can be executed parallelly.
 // In a word, the execution should be (A, B) -> (C) -> (D, E)
-func (p *Phistage) JobDependencies() ([][]*Job, error) {
+func (p *Pistage) JobDependencies() ([][]*Job, error) {
 	var (
 		jobs [][]*Job
 		tp   = newTopo()
@@ -81,7 +81,7 @@ func (p *Phistage) JobDependencies() ([][]*Job, error) {
 // are finished, or when error occurs and early break the execution.
 // The channel only contains the names of jobs, so use GetJob method to
 // retrieve the real job, since it's too complicated to return a channel of jobs.
-func (p *Phistage) JobStream() (<-chan string, chan<- string, func()) {
+func (p *Pistage) JobStream() (<-chan string, chan<- string, func()) {
 	tp := newTopo()
 	for _, job := range p.Jobs {
 		tp.addDependencies(job.Name, job.DependsOn...)
@@ -90,7 +90,7 @@ func (p *Phistage) JobStream() (<-chan string, chan<- string, func()) {
 }
 
 // GetJob gets job by the given names.
-func (p *Phistage) GetJob(name string) (*Job, error) {
+func (p *Pistage) GetJob(name string) (*Job, error) {
 	job, ok := p.Jobs[name]
 	if !ok {
 		return nil, ErrorJobNotFound
@@ -99,7 +99,7 @@ func (p *Phistage) GetJob(name string) (*Job, error) {
 }
 
 // GetJobs gets job list by the given names.
-func (p *Phistage) GetJobs(names []string) []*Job {
+func (p *Pistage) GetJobs(names []string) []*Job {
 	var jobs []*Job
 	for _, name := range names {
 		job, ok := p.Jobs[name]
@@ -111,9 +111,9 @@ func (p *Phistage) GetJobs(names []string) []*Job {
 	return jobs
 }
 
-// FromSpec build a Phistage from a spec file.
-func FromSpec(content []byte) (*Phistage, error) {
-	p := &Phistage{}
+// FromSpec build a Pistage from a spec file.
+func FromSpec(content []byte) (*Pistage, error) {
+	p := &Pistage{}
 	err := yaml.Unmarshal(content, p)
 	if err != nil {
 		return nil, err
@@ -123,20 +123,20 @@ func FromSpec(content []byte) (*Phistage, error) {
 	return p, p.validate()
 }
 
-// MarshalPhistage marshals phistage back into yaml format.
-func MarshalPhistage(phistage *Phistage) ([]byte, error) {
-	return yaml.Marshal(phistage)
+// MarshalPistage marshals pistage back into yaml format.
+func MarshalPistage(pistage *Pistage) ([]byte, error) {
+	return yaml.Marshal(pistage)
 }
 
-// PhistageTask contains a phistage and an output tracing stream.
+// PistageTask contains a pistage and an output tracing stream.
 // Tracing stream is used to trace this process.
-type PhistageTask struct {
-	// Phistage holds the phistage to execute.
-	Phistage *Phistage
+type PistageTask struct {
+	// Pistage holds the pistage to execute.
+	Pistage *Pistage
 
 	// Output is the tracing stream for logs.
 	// It's an io.WriteCloser, closing this output indicates that
-	// all logs have been written into this stream, the phistage
+	// all logs have been written into this stream, the pistage
 	// has finished.
 	// Do remember to close the Output, or find some other methods to
 	// control the halt of the process.

@@ -1,12 +1,12 @@
 package helpers
 
 import (
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/executors"
-	"github.com/projecteru2/phistage/executors/eru"
-	"github.com/projecteru2/phistage/executors/shell"
-	"github.com/projecteru2/phistage/executors/ssh"
-	"github.com/projecteru2/phistage/store"
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/executors"
+	"github.com/projecteru2/pistage/executors/eru"
+	"github.com/projecteru2/pistage/executors/shell"
+	"github.com/projecteru2/pistage/executors/ssh"
+	"github.com/projecteru2/pistage/store"
 )
 
 // initEru initializes eru executor provider.

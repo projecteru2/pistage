@@ -10,23 +10,23 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/executors"
-	"github.com/projecteru2/phistage/store"
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/executors"
+	"github.com/projecteru2/pistage/store"
 )
 
 type StageServer struct {
 	config *common.Config
-	stages chan *common.PhistageTask
+	stages chan *common.PistageTask
 	stop   chan struct{}
 	store  store.Store
 	wg     sync.WaitGroup
 }
 
-func NewStager(config *common.Config, store store.Store) *StageServer {
+func NewStageServer(config *common.Config, store store.Store) *StageServer {
 	return &StageServer{
 		config: config,
-		stages: make(chan *common.PhistageTask),
+		stages: make(chan *common.PistageTask),
 		stop:   make(chan struct{}),
 		store:  store,
 		wg:     sync.WaitGroup{},
@@ -50,7 +50,7 @@ func (s *StageServer) Stop() {
 	logrus.Info("[Stager] gracefully stopped")
 }
 
-func (s *StageServer) Add(pt *common.PhistageTask) {
+func (s *StageServer) Add(pt *common.PistageTask) {
 	s.stages <- pt
 }
 
@@ -63,40 +63,40 @@ func (s *StageServer) runner(id int) {
 			return
 		case pt := <-s.stages:
 			// if err := s.runWithGraph(pt); err != nil {
-			// 	logrus.WithField("phistage", pt.Phistage.Name).WithError(err).Errorf("[Stager runner] error when running a phistage")
+			// 	logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
 			// }
 			if err := s.runWithStream(pt); err != nil {
-				logrus.WithField("phistage", pt.Phistage.Name).WithError(err).Errorf("[Stager runner] error when running a phistage")
+				logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
 			}
 
-			// We need to close the Output here, indicating the phistage is finished,
+			// We need to close the Output here, indicating the pistage is finished,
 			// all logs are written into this Output.
 			if err := pt.Output.Close(); err != nil {
-				logrus.WithField("phistage", pt.Phistage.Name).WithError(err).Errorf("[Stager runner] error when closing the output writer")
+				logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when closing the output writer")
 			}
 			runtime.GC()
 		}
 	}
 }
 
-func (s *StageServer) runWithGraph(pt *common.PhistageTask) error {
-	phistage := pt.Phistage
-	logger := logrus.WithField("phistage", phistage.Name)
+func (s *StageServer) runWithGraph(pt *common.PistageTask) error {
+	pistage := pt.Pistage
+	logger := logrus.WithField("pistage", pistage.Name)
 
-	if err := s.store.CreatePhistage(context.TODO(), phistage); err != nil {
-		logger.WithError(err).Error("[Stager runWithGraph] fail to create Phistage")
+	if err := s.store.CreatePistage(context.TODO(), pistage); err != nil {
+		logger.WithError(err).Error("[Stager runWithGraph] fail to create Pistage")
 		return err
 	}
 
-	jobGraph, err := phistage.JobDependencies()
+	jobGraph, err := pistage.JobDependencies()
 	if err != nil {
 		logger.WithError(err).Errorf("[Stager runWithGraph] error getting job graph")
 		return err
 	}
 
 	run := &common.Run{
-		Phistage: phistage.Name,
-		Start:    time.Now(),
+		Pistage: pistage.Name,
+		Start:   time.Now(),
 	}
 	if err := s.store.CreateRun(context.TODO(), run); err != nil {
 		logger.WithError(err).Error("[Stager runWithGraph] fail to create Run")
@@ -115,7 +115,7 @@ func (s *StageServer) runWithGraph(pt *common.PhistageTask) error {
 			wg.Add(1)
 			go func(job *common.Job) {
 				defer wg.Done()
-				err = s.runOneJob(phistage, job, run, pt.Output)
+				err = s.runOneJob(pistage, job, run, pt.Output)
 			}(job)
 		}
 		wg.Wait()
@@ -128,18 +128,18 @@ func (s *StageServer) runWithGraph(pt *common.PhistageTask) error {
 	return nil
 }
 
-func (s *StageServer) runWithStream(pt *common.PhistageTask) error {
-	phistage := pt.Phistage
-	logger := logrus.WithField("phistage", phistage.Name)
+func (s *StageServer) runWithStream(pt *common.PistageTask) error {
+	pistage := pt.Pistage
+	logger := logrus.WithField("pistage", pistage.Name)
 
-	if err := s.store.CreatePhistage(context.TODO(), phistage); err != nil {
-		logger.WithError(err).Error("[Stager runWithStream] fail to create Phistage")
+	if err := s.store.CreatePistage(context.TODO(), pistage); err != nil {
+		logger.WithError(err).Error("[Stager runWithStream] fail to create Pistage")
 		return err
 	}
 
 	run := &common.Run{
-		Phistage: phistage.Name,
-		Start:    time.Now(),
+		Pistage: pistage.Name,
+		Start:   time.Now(),
 	}
 	if err := s.store.CreateRun(context.TODO(), run); err != nil {
 		logger.WithError(err).Error("[Stager runWithStream] fail to create Run")
@@ -155,14 +155,14 @@ func (s *StageServer) runWithStream(pt *common.PhistageTask) error {
 
 	once := sync.Once{}
 
-	jobs, finished, finish := phistage.JobStream()
+	jobs, finished, finish := pistage.JobStream()
 	defer once.Do(finish)
 
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
 
 	for jobName := range jobs {
-		job, err := phistage.GetJob(jobName)
+		job, err := pistage.GetJob(jobName)
 		if err != nil {
 			logger.WithError(err).Error("[Stager runWithStream] fail to get Job")
 			return err
@@ -171,7 +171,7 @@ func (s *StageServer) runWithStream(pt *common.PhistageTask) error {
 		wg.Add(1)
 		go func(job *common.Job) {
 			defer wg.Done()
-			if err = s.runOneJob(phistage, job, run, pt.Output); err != nil {
+			if err = s.runOneJob(pistage, job, run, pt.Output); err != nil {
 				logger.WithError(err).Errorf("[Stager runWithStream] error occurred, skip following jobs")
 				once.Do(finish)
 				return
@@ -182,13 +182,13 @@ func (s *StageServer) runWithStream(pt *common.PhistageTask) error {
 	return nil
 }
 
-func (s *StageServer) runOneJob(phistage *common.Phistage, job *common.Job, run *common.Run, logCollector io.Writer) error {
-	logger := logrus.WithFields(logrus.Fields{"phistage": phistage.Name, "executor": phistage.Executor, "job": job.Name})
+func (s *StageServer) runOneJob(pistage *common.Pistage, job *common.Job, run *common.Run, logCollector io.Writer) error {
+	logger := logrus.WithFields(logrus.Fields{"pistage": pistage.Name, "executor": pistage.Executor, "job": job.Name})
 
 	jobRun := &common.JobRun{
-		Phistage: phistage.Name,
-		Job:      job.Name,
-		Status:   common.JobRunStatusPending,
+		Pistage: pistage.Name,
+		Job:     job.Name,
+		Status:  common.JobRunStatusPending,
 	}
 	if err := s.store.CreateJobRun(context.TODO(), run, jobRun); err != nil {
 		logger.WithError(err).Error("[Stager runOneJob] fail to create JobRun")
@@ -214,13 +214,13 @@ func (s *StageServer) runOneJob(phistage *common.Phistage, job *common.Job, run 
 		return err
 	}
 
-	executorProvider := executors.GetExecutorProvider(phistage.Executor)
+	executorProvider := executors.GetExecutorProvider(pistage.Executor)
 	if executorProvider == nil {
 		logger.Errorf("[Stager runOneJob] fail to get a provider")
-		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, phistage.Name)
+		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, pistage.Name)
 	}
 
-	executor, err := executorProvider.GetJobExecutor(job, phistage, jobRun.LogTracer)
+	executor, err := executorProvider.GetJobExecutor(job, pistage, jobRun.LogTracer)
 	if err != nil {
 		logger.WithError(err).Errorf("[Stager runOneJob] fail to get a job executor")
 		return err

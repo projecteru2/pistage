@@ -6,7 +6,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config is global config for phistage
+// Config is global config for pistage
 type Config struct {
 	Bind               string   `yaml:"bind" default:":9736"`
 	StageServerWorkers int      `yaml:"stage_server_workers" default:"10"`
@@ -26,7 +26,7 @@ type EruConfig struct {
 	Username          string `yaml:"username"`
 	Password          string `yaml:"password"`
 	DefaultPrivileged bool   `yaml:"default_privileged" default:"true"`
-	DefaultWorkingDir string `yaml:"default_working_dir" default:"/phistage"`
+	DefaultWorkingDir string `yaml:"default_working_dir" default:"/pistage"`
 	DefaultPodname    string `yaml:"default_pod" default:"ci"`
 	DefaultJobImage   string `yaml:"default_job_image"`
 	DefaultUser       string `yaml:"default_user" default:"root"`
@@ -66,7 +66,7 @@ func (c *Config) initDefault() {
 		c.DefaultJobExecuteTimeout = 1200
 	}
 	if c.Eru.DefaultWorkingDir == "" {
-		c.Eru.DefaultWorkingDir = "/phistage"
+		c.Eru.DefaultWorkingDir = "/pistage"
 	}
 	if c.Eru.DefaultPodname == "" {
 		c.Eru.DefaultPodname = "ci"

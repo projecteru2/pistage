@@ -13,10 +13,11 @@ import (
 	"time"
 
 	"github.com/bwmarrin/snowflake"
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/helpers"
-	"github.com/projecteru2/phistage/store"
 	"gopkg.in/yaml.v3"
+
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/helpers"
+	"github.com/projecteru2/pistage/store"
 )
 
 type FileSystemStore struct {
@@ -38,19 +39,19 @@ func NewFileSystemStore(root string, khoriumManager *store.KhoriumManager) (*Fil
 	}, nil
 }
 
-// ${root}/phistage/${sha1 of phistage name}/meta/current
-// ${root}/phistage/${sha1 of phistage name}/meta/${sha1 of file content}
-// ${root}/phistage/${sha1 of phistage name}/run/${run id}
-func (fs *FileSystemStore) CreatePhistage(ctx context.Context, phistage *common.Phistage) error {
+// ${root}/pistage/${sha1 of pistage name}/meta/current
+// ${root}/pistage/${sha1 of pistage name}/meta/${sha1 of file content}
+// ${root}/pistage/${sha1 of pistage name}/run/${run id}
+func (fs *FileSystemStore) CreatePistage(ctx context.Context, pistage *common.Pistage) error {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
-	sha1OfName, err := helpers.Sha1HexDigest(phistage.Name)
+	sha1OfName, err := helpers.Sha1HexDigest(pistage.Name)
 	if err != nil {
 		return err
 	}
 
-	rootPath := filepath.Join(fs.root, "phistage", sha1OfName)
+	rootPath := filepath.Join(fs.root, "pistage", sha1OfName)
 	metaPath := filepath.Join(rootPath, "meta")
 	if err := os.MkdirAll(metaPath, 0700); err != nil {
 		return err
@@ -60,7 +61,7 @@ func (fs *FileSystemStore) CreatePhistage(ctx context.Context, phistage *common.
 		return err
 	}
 
-	content, err := json.Marshal(phistage)
+	content, err := json.Marshal(pistage)
 	if err != nil {
 		return err
 	}
@@ -80,7 +81,7 @@ func (fs *FileSystemStore) CreatePhistage(ctx context.Context, phistage *common.
 	return nil
 }
 
-func (fs *FileSystemStore) GetPhistage(ctx context.Context, name string) (*common.Phistage, error) {
+func (fs *FileSystemStore) GetPistage(ctx context.Context, name string) (*common.Pistage, error) {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
@@ -89,7 +90,7 @@ func (fs *FileSystemStore) GetPhistage(ctx context.Context, name string) (*commo
 		return nil, err
 	}
 
-	metaPath := filepath.Join(fs.root, "phistage", sha1OfName, "meta")
+	metaPath := filepath.Join(fs.root, "pistage", sha1OfName, "meta")
 	sha1OfFile, err := ioutil.ReadFile(filepath.Join(metaPath, "current"))
 	if err != nil {
 		return nil, err
@@ -100,14 +101,14 @@ func (fs *FileSystemStore) GetPhistage(ctx context.Context, name string) (*commo
 		return nil, err
 	}
 
-	p := &common.Phistage{}
+	p := &common.Pistage{}
 	if err := json.Unmarshal(content, p); err != nil {
 		return nil, err
 	}
 	return p, nil
 }
 
-func (fs *FileSystemStore) DeletePhistage(ctx context.Context, name string) error {
+func (fs *FileSystemStore) DeletePistage(ctx context.Context, name string) error {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
@@ -116,12 +117,12 @@ func (fs *FileSystemStore) DeletePhistage(ctx context.Context, name string) erro
 		return err
 	}
 
-	return os.RemoveAll(filepath.Join(fs.root, "phistage", sha1OfName))
+	return os.RemoveAll(filepath.Join(fs.root, "pistage", sha1OfName))
 }
 
 // ${root}/run/${id}/jobrun/${jobrun id}
 // ${root}/run/${id}/run
-// ${root}/phistage/${sha1 of phistage name}/run/${run id}
+// ${root}/pistage/${sha1 of pistage name}/run/${run id}
 func (fs *FileSystemStore) CreateRun(ctx context.Context, run *common.Run) error {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
@@ -149,12 +150,12 @@ func (fs *FileSystemStore) CreateRun(ctx context.Context, run *common.Run) error
 		return err
 	}
 
-	// phistage run
-	sha1OfPhistageName, err := helpers.Sha1HexDigest(run.Phistage)
+	// pistage run
+	sha1OfPistageName, err := helpers.Sha1HexDigest(run.Pistage)
 	if err != nil {
 		return err
 	}
-	filename := filepath.Join(fs.root, "phistage", sha1OfPhistageName, "run", run.ID)
+	filename := filepath.Join(fs.root, "pistage", sha1OfPistageName, "run", run.ID)
 	if err := helpers.OverWriteFile(filename, ""); err != nil {
 		return err
 	}
@@ -192,8 +193,8 @@ func (fs *FileSystemStore) UpdateRun(ctx context.Context, run *common.Run) error
 	return helpers.OverWriteFile(runPath, content)
 }
 
-// ${root}/phistage/${sha1 of phistage name}/run/${run id}
-func (fs *FileSystemStore) GetRunsByPhistage(ctx context.Context, name string) ([]*common.Run, error) {
+// ${root}/pistage/${sha1 of pistage name}/run/${run id}
+func (fs *FileSystemStore) GetRunsByPistage(ctx context.Context, name string) ([]*common.Run, error) {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
@@ -202,7 +203,7 @@ func (fs *FileSystemStore) GetRunsByPhistage(ctx context.Context, name string) (
 		return nil, err
 	}
 
-	pattern := filepath.Join(fs.root, "phistage", sha1OfName, "run", "*")
+	pattern := filepath.Join(fs.root, "pistage", sha1OfName, "run", "*")
 	matches, err := filepath.Glob(pattern)
 	if err != nil {
 		return nil, err
@@ -412,8 +413,8 @@ func (fs *FileSystemStore) GetRegisteredStep(ctx context.Context, name string) (
 	return step, nil
 }
 
-// ${root}/phistage/${sha1 of phistage name}/vars
-func (fs *FileSystemStore) SetVariablesForPhistage(ctx context.Context, name string, vars map[string]string) error {
+// ${root}/pistage/${sha1 of pistage name}/vars
+func (fs *FileSystemStore) SetVariablesForPistage(ctx context.Context, name string, vars map[string]string) error {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
@@ -422,7 +423,7 @@ func (fs *FileSystemStore) SetVariablesForPhistage(ctx context.Context, name str
 		return err
 	}
 
-	rootPath := filepath.Join(fs.root, "phistage", sha1OfName)
+	rootPath := filepath.Join(fs.root, "pistage", sha1OfName)
 	if err := os.MkdirAll(rootPath, 0700); err != nil {
 		return err
 	}
@@ -434,8 +435,8 @@ func (fs *FileSystemStore) SetVariablesForPhistage(ctx context.Context, name str
 	return helpers.OverWriteFile(filepath.Join(rootPath, "vars"), content)
 }
 
-// ${root}/phistage/${sha1 of phistage name}/vars
-func (fs *FileSystemStore) GetVariablesForPhistage(ctx context.Context, name string) (map[string]string, error) {
+// ${root}/pistage/${sha1 of pistage name}/vars
+func (fs *FileSystemStore) GetVariablesForPistage(ctx context.Context, name string) (map[string]string, error) {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
 
@@ -444,7 +445,7 @@ func (fs *FileSystemStore) GetVariablesForPhistage(ctx context.Context, name str
 		return nil, err
 	}
 
-	varsPath := filepath.Join(fs.root, "phistage", sha1OfName, "vars")
+	varsPath := filepath.Join(fs.root, "pistage", sha1OfName, "vars")
 	content, err := ioutil.ReadFile(varsPath)
 	if err != nil {
 		// if not exist, we return empty vars

@@ -11,16 +11,16 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/helpers"
-	"github.com/projecteru2/phistage/helpers/command"
-	"github.com/projecteru2/phistage/helpers/variable"
-	"github.com/projecteru2/phistage/store"
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/helpers"
+	"github.com/projecteru2/pistage/helpers/command"
+	"github.com/projecteru2/pistage/helpers/variable"
+	"github.com/projecteru2/pistage/store"
 )
 
 var (
-	sshExecutorRootWorkingDir            = "_phistage"
-	sshExecutorKhoriumStepRootWorkingDir = "_phistage_khoriumstep"
+	sshExecutorRootWorkingDir            = "_pistage"
+	sshExecutorKhoriumStepRootWorkingDir = "_pistage_khoriumstep"
 
 	ErrorNoHome = errors.New("No SSH Home")
 )
@@ -32,8 +32,8 @@ type SSHJobExecutor struct {
 	client *ssh.Client
 	home   string
 
-	job      *common.Job
-	phistage *common.Phistage
+	job     *common.Job
+	pistage *common.Pistage
 
 	output         io.Writer
 	workingDir     string
@@ -41,8 +41,8 @@ type SSHJobExecutor struct {
 }
 
 // NewEruJobExecutor creates an ERU executor for this job.
-// Since job needs to know its context, phistage is assigned too.
-func NewSSHJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer, client *ssh.Client, store store.Store, config *common.Config) (*SSHJobExecutor, error) {
+// Since job needs to know its context, pistage is assigned too.
+func NewSSHJobExecutor(job *common.Job, pistage *common.Pistage, output io.Writer, client *ssh.Client, store store.Store, config *common.Config) (*SSHJobExecutor, error) {
 	// get the current working dir as writable home.
 	session, err := client.NewSession()
 	if err != nil {
@@ -67,9 +67,9 @@ func NewSSHJobExecutor(job *common.Job, phistage *common.Phistage, output io.Wri
 		client:         client,
 		home:           home,
 		job:            job,
-		phistage:       phistage,
+		pistage:        pistage,
 		output:         output,
-		jobEnvironment: phistage.Environment,
+		jobEnvironment: pistage.Environment,
 	}, nil
 }
 
@@ -110,7 +110,7 @@ func (s *SSHJobExecutor) Prepare(ctx context.Context) error {
 
 // prepareJobRuntime creates a working dir for this job.
 func (s *SSHJobExecutor) prepareJobRuntime(ctx context.Context) error {
-	digest, err := helpers.Sha1HexDigest(fmt.Sprintf("%s:%s", s.phistage.Name, s.job.Name))
+	digest, err := helpers.Sha1HexDigest(fmt.Sprintf("%s:%s", s.pistage.Name, s.job.Name))
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (s *SSHJobExecutor) prepareJobRuntime(ctx context.Context) error {
 }
 
 func (s *SSHJobExecutor) prepareFileContext(ctx context.Context) error {
-	dependentJobs := s.phistage.GetJobs(s.job.DependsOn)
+	dependentJobs := s.pistage.GetJobs(s.job.DependsOn)
 	for _, job := range dependentJobs {
 		fc := job.GetFileCollector()
 		if fc == nil {
@@ -208,7 +208,7 @@ func (s *SSHJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 		vars map[string]string
 	)
 
-	vars, err = s.store.GetVariablesForPhistage(ctx, s.phistage.Name)
+	vars, err = s.store.GetVariablesForPistage(ctx, s.pistage.Name)
 	if err != nil {
 		return err
 	}
@@ -235,7 +235,7 @@ func (s *SSHJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 		return err
 	}
 
-	vars, err := s.store.GetVariablesForPhistage(ctx, s.phistage.Name)
+	vars, err := s.store.GetVariablesForPistage(ctx, s.pistage.Name)
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func (s *SSHJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 
 	// Prepare KhoriumStep environment.
 	// Make the proper working dir, and copy the files to this dir.
-	digest, err := helpers.Sha1HexDigest(fmt.Sprintf("%s:%s", s.phistage.Name, s.job.Name))
+	digest, err := helpers.Sha1HexDigest(fmt.Sprintf("%s:%s", s.pistage.Name, s.job.Name))
 	if err != nil {
 		return err
 	}

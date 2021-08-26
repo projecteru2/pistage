@@ -3,9 +3,9 @@ package helpers
 import (
 	"os"
 
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/store"
-	"github.com/projecteru2/phistage/store/filesystem"
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/store"
+	"github.com/projecteru2/pistage/store/filesystem"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

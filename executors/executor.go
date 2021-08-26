@@ -5,11 +5,12 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
-	"github.com/projecteru2/phistage/common"
 	"github.com/sirupsen/logrus"
+
+	"github.com/projecteru2/pistage/common"
 )
 
-type PhistageExecutor interface {
+type PistageExecutor interface {
 	Execute(ctx context.Context) error
 }
 
@@ -38,9 +39,9 @@ type ExecutorProvider interface {
 	// GetName returns the name of this ExecutorProvider.
 	GetName() string
 
-	// GetJobExecutor returns a JobExecutor with the given job and phistage,
+	// GetJobExecutor returns a JobExecutor with the given job and pistage,
 	// all job executors in use should be generated from this method.
-	GetJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer) (JobExecutor, error)
+	GetJobExecutor(job *common.Job, pistage *common.Pistage, output io.Writer) (JobExecutor, error)
 }
 
 var executorProviders = make(map[string]ExecutorProvider)

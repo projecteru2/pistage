@@ -5,7 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/projecteru2/phistage/apiserver/grpc/proto"
+	"github.com/projecteru2/pistage/apiserver/grpc/proto"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -22,7 +22,7 @@ func applyOneway(c *cli.Context) error {
 		return err
 	}
 
-	reply, err := client.ApplyOneway(context.TODO(), &proto.ApplyPhistageRequest{Content: string(content)})
+	reply, err := client.ApplyOneway(context.TODO(), &proto.ApplyPistageRequest{Content: string(content)})
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func applyStream(c *cli.Context) error {
 		return err
 	}
 
-	stream, err := client.ApplyStream(context.TODO(), &proto.ApplyPhistageRequest{Content: string(content)})
+	stream, err := client.ApplyStream(context.TODO(), &proto.ApplyPistageRequest{Content: string(content)})
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func apply(c *cli.Context) error {
 func ApplyCommands() *cli.Command {
 	return &cli.Command{
 		Name:  "apply",
-		Usage: "Apply a Phistage",
+		Usage: "Apply a Pistage",
 		Action: func(c *cli.Context) error {
 			return apply(c)
 		},
@@ -83,12 +83,12 @@ func ApplyCommands() *cli.Command {
 				Name:    "file",
 				Aliases: []string{"f"},
 				Value:   "pistage.yml",
-				Usage:   "Phistage yaml description file",
+				Usage:   "Pistage yaml description file",
 			},
 			&cli.BoolFlag{
 				Name:  "stream",
 				Value: false,
-				Usage: "If set, will wait and print all the logs from phistage",
+				Usage: "If set, will wait and print all the logs from pistage",
 			},
 		},
 	}
