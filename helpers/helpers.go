@@ -34,7 +34,7 @@ func Sha1HexDigest(content interface{}) (string, error) {
 
 // OverWriteFile overrides the file with the content.
 // File is created with O_CREATE and O_TRUNC, file will always be
-// over written.
+// overwritten.
 func OverWriteFile(path string, content interface{}) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {

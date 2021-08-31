@@ -110,6 +110,7 @@ func (e *EruJobExecutor) defaultEnvironmentVariables() map[string]string {
 	return map[string]string{
 		"PISTAGE_WORKING_DIR": e.workingDir,
 		"PISTAGE_JOB_NAME":    e.job.Name,
+		"PISTAGE_DEPENDS_ON":  strings.Join(e.job.DependsOn, ","),
 	}
 }
 
@@ -134,7 +135,7 @@ func (e *EruJobExecutor) buildEruLambdaOptions() *corepb.RunAndWaitOptions {
 			Podname:        e.config.Eru.DefaultPodname,
 			Image:          jobImage,
 			Count:          1,
-			Env:            command.ToEnvironmentList(command.MergeVariables(e.jobEnvironment, e.defaultEnvironmentVariables())),
+			Env:            command.ToEnvironmentList(command.MergeVariables(command.PreparePistageEnvs(e.jobEnvironment), e.defaultEnvironmentVariables())),
 			Networks:       map[string]string{e.config.Eru.DefaultNetwork: ""},
 			DeployStrategy: corepb.DeployOptions_AUTO,
 			ResourceOpts:   &corepb.ResourceOptions{},
@@ -261,7 +262,7 @@ func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 	}
 	envs := command.MergeVariables(step.Environment, ksEnv)
 
-	fc := NewEruFileCollector(e.eru, khoriumStepWorkingDir)
+	fc := NewEruFileCollector(e.eru, khoriumStepWorkingDir, e.job)
 	fc.SetFiles(ks.Files)
 	if err := fc.CopyTo(ctx, e.workloadID, nil); err != nil {
 		return err
@@ -372,11 +373,7 @@ func (e *EruJobExecutor) executeCommands(ctx context.Context, cmds []string, arg
 
 // beforeCleanup collects files if any
 func (e *EruJobExecutor) beforeCleanup(ctx context.Context) error {
-	if len(e.job.Files) == 0 {
-		return nil
-	}
-
-	fc := NewEruFileCollector(e.eru, e.workingDir)
+	fc := NewEruFileCollector(e.eru, e.workingDir, e.job)
 	if err := fc.Collect(ctx, e.workloadID, e.job.Files); err != nil {
 		return err
 	}

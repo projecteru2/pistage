@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	corepb "github.com/projecteru2/core/rpc/gen"
+
 	"github.com/projecteru2/pistage/common"
 )
 
@@ -29,6 +30,8 @@ type EruFileCollector struct {
 	// The names are **RELATIVE** to root.
 	files map[string][]byte
 
+	job *common.Job
+
 	// root is the root dir of this file collector.
 	// This should be **ABSOLUTE**.
 	root string
@@ -36,11 +39,12 @@ type EruFileCollector struct {
 
 // NewEruFileCollector creates an EruFileCollector,
 // note that root must be an absolute path.
-func NewEruFileCollector(eru corepb.CoreRPCClient, root string) *EruFileCollector {
+func NewEruFileCollector(eru corepb.CoreRPCClient, root string, job *common.Job) *EruFileCollector {
 	return &EruFileCollector{
 		eru:   eru,
 		files: map[string][]byte{},
 		root:  root,
+		job:   job,
 	}
 }
 
@@ -51,21 +55,23 @@ func (e *EruFileCollector) SetFiles(files map[string][]byte) {
 	e.files = files
 }
 
+func (e *EruFileCollector) getArtifactsFileName() string {
+	return fmt.Sprintf("__pistage_%v_artifacts", e.job.Name)
+}
+
 // Collect collects files from the workload.
 // For an EruFileCollector, identifier represents the workload id.
 // All paths in files should be absolute, or related to the current working dir.
 func (e *EruFileCollector) Collect(ctx context.Context, identifier string, files []string) error {
-	if len(files) == 0 {
-		return nil
-	}
-
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
 	var (
 		err   error
-		paths []string
 	)
+
+	// output of the job
+	paths := []string{filepath.Join(e.root, e.getArtifactsFileName())}
 
 	for _, file := range files {
 		path := filepath.Join(e.root, file)
@@ -74,9 +80,6 @@ func (e *EruFileCollector) Collect(ctx context.Context, identifier string, files
 			continue
 		}
 		paths = append(paths, path)
-	}
-	if len(paths) == 0 {
-		return nil
 	}
 
 	resp, err := e.eru.Copy(ctx, &corepb.CopyOptions{

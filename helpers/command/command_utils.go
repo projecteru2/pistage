@@ -64,15 +64,26 @@ func EmptyWorkloadCommand(timeout int) []string {
 	return []string{"/bin/sh", "-c", fmt.Sprintf("sleep %d", timeout)}
 }
 
+func regulateEnv(env string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(env), ".", "_"), "-", "_")
+}
+
 // ToEnvironmentList transfers an environment map to a key=value list
 // key will be in upper case, and . in key will be replaced by _
 func ToEnvironmentList(env map[string]string) []string {
 	var envs []string
 	for key, value := range env {
-		key = strings.ReplaceAll(key, ".", "_")
-		envs = append(envs, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
+		envs = append(envs, fmt.Sprintf("%s=%s", regulateEnv(key), value))
 	}
 	return envs
+}
+
+func PreparePistageEnvs(envs map[string]string) map[string]string {
+	prepared := make(map[string]string, len(envs))
+	for key, value := range envs {
+		prepared[fmt.Sprintf("PISTAGE_ENV_VAR_%s", key)] = value
+	}
+	return prepared
 }
 
 // MergeVariables merges higherPriority into lowerPriority,
