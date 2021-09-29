@@ -86,7 +86,7 @@ func (t *topo) graph() ([][]string, error) {
 	return r, nil
 }
 
-const EmptyVertexName = ""
+const emptyVertexName = ""
 
 // stream returns a job channel to get jobs from,
 // a finish channel indicating that one job is finished,
@@ -94,7 +94,7 @@ const EmptyVertexName = ""
 // Remember to send a finished job name back to finish channel,
 // and call the callback when and only when all jobs are finished.
 // This method do not check if the topo is a valid DAG. So do remember to check cyclic before calling this method.
-func (t *topo) stream() (<-chan string, chan<- string) {
+func (t *topo) stream() (<-chan string, chan<- string, func()) {
 	length := len(t.vertices)
 	t.jobCh = make(chan string, length)
 
@@ -110,8 +110,8 @@ func (t *topo) stream() (<-chan string, chan<- string) {
 				return
 			}
 			select {
-			case vname := <-t.finishCh:
-				if vname == EmptyVertexName {
+			case vname, ok := <-t.finishCh:
+				if !ok || vname == emptyVertexName {
 					close(t.jobCh)
 					return
 				}
@@ -125,7 +125,9 @@ func (t *topo) stream() (<-chan string, chan<- string) {
 	}()
 	// t.finishCh is never closed.
 	// Don't worry it will be GCed.
-	return t.jobCh, t.finishCh
+	return t.jobCh, t.finishCh, func() {
+		t.finishCh <- emptyVertexName
+	}
 }
 
 func (t *topo) iterate() {

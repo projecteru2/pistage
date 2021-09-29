@@ -73,7 +73,10 @@ func (r *PistageRunner) runWithStream() error {
 		}
 	}()
 
-	jobs, finished := p.JobStream()
+	once := sync.Once{}
+	jobs, finished, finish := p.JobStream()
+	defer once.Do(finish)
+
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
 
@@ -88,7 +91,7 @@ func (r *PistageRunner) runWithStream() error {
 		go func(job *common.Job) {
 			defer wg.Done()
 			if err = r.runOneJob(job); err != nil {
-				finished <- common.EmptyVertexName
+				once.Do(finish)
 				r.status = common.RunStatusFailed
 				logger.WithError(err).Errorf("[Stager runWithStream] error occurred, skip following jobs")
 				return
