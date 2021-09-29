@@ -65,7 +65,8 @@ func TestTopologyStream1(t *testing.T) {
 	tp.addDependencies("I", "D")
 	tp.addDependencies("E", "B", "G", "H")
 
-	jobs, finished, finish := tp.stream()
+	jobs, finished := tp.stream()
+
 	result := make(chan string)
 	r := []string{}
 
@@ -90,7 +91,6 @@ func TestTopologyStream1(t *testing.T) {
 		}(job)
 	}
 	wg2.Wait()
-	finish()
 
 	close(result)
 	wg1.Wait()
@@ -105,7 +105,7 @@ func TestTopologyStream2(t *testing.T) {
 	tp := newTopo()
 	tp.addDependencies("C", "A", "B", "D", "E", "F", "G", "H")
 
-	jobs, finished, finish := tp.stream()
+	jobs, finished := tp.stream()
 	result := make(chan string)
 	r := []string{}
 
@@ -130,7 +130,6 @@ func TestTopologyStream2(t *testing.T) {
 		}(job)
 	}
 	wg2.Wait()
-	finish()
 
 	close(result)
 	wg1.Wait()
@@ -147,7 +146,7 @@ func TestTopologyStream3(t *testing.T) {
 	tp.addDependencies("B")
 	tp.addDependencies("C")
 
-	jobs, finished, finish := tp.stream()
+	jobs, finished := tp.stream()
 	result := make(chan string)
 	r := []string{}
 
@@ -172,7 +171,6 @@ func TestTopologyStream3(t *testing.T) {
 		}(job)
 	}
 	wg2.Wait()
-	finish()
 
 	close(result)
 	wg1.Wait()
@@ -184,12 +182,13 @@ func TestTopologyStream4(t *testing.T) {
 	assert := assert.New(t)
 
 	tp := newTopo()
-	tp.addDependencies("A", "B")
-	tp.addDependencies("B", "C")
-	tp.addDependencies("C", "D")
-	tp.addDependencies("D", "E")
+	tp.addDependencies("B", "A")
+	tp.addDependencies("C", "B")
+	tp.addDependencies("D", "B")
+	tp.addDependencies("E", "C", "D")
 
-	jobs, finished, finish := tp.stream()
+	jobs, finished := tp.stream()
+
 	result := make(chan string)
 	r := []string{}
 
@@ -202,25 +201,30 @@ func TestTopologyStream4(t *testing.T) {
 		}
 	}()
 
-	index := 0
+	wg2 := sync.WaitGroup{}
+
 	for job := range jobs {
+		println(job)
 		result <- job
 
-		index++
-		if index == 3 {
-			// 3 error
-			finish()
-		} else {
-			// 0, 1, 2 finished
-			finished <- job
-		}
+		wg2.Add(1)
+		go func(job string) {
+			defer wg2.Done()
+			if job == "C" {
+				finished <- ""
+			} else {
+				// 0, 1, 2 finished
+				finished <- job
+			}
+		}(job)
 	}
 
 	close(result)
 	wg1.Wait()
+	wg2.Wait()
 
-	assert.Equal(len(r), 3)
-	assert.Equal(r, []string{"E", "D", "C"})
+	assert.Equal(len(r), 4)
+	assert.Equal(r, []string{"A", "B", "C", "D"})
 }
 
 func TestTopologyCyclic(t *testing.T) {
