@@ -74,14 +74,15 @@ func LoadStep(content []byte) (*Step, error) {
 	return s, nil
 }
 
-// JobRunStatus is the status of a JobRun
-type JobRunStatus string
+// RunStatus is the status of a Run or a JobRun
+type RunStatus string
 
 var (
-	JobRunStatusPending  JobRunStatus = "pending"
-	JobRunStatusRunning  JobRunStatus = "running"
-	JobRunStatusFinished JobRunStatus = "finished"
-	JobRunStatusCanceled JobRunStatus = "canceled"
+	RunStatusPending  RunStatus = "pending"
+	RunStatusRunning  RunStatus = "running"
+	RunStatusFinished RunStatus = "finished"
+	RunStatusFailed   RunStatus = "failed"
+	RunStatusCanceled RunStatus = "canceled"
 )
 
 type Run struct {
@@ -95,7 +96,7 @@ type JobRun struct {
 	ID        string             `json:"id"`
 	Pistage   string             `json:"pistage"`
 	Job       string             `json:"job"`
-	Status    JobRunStatus       `json:"status"`
+	Status    RunStatus          `json:"status"`
 	Start     time.Time          `json:"start"`
 	End       time.Time          `json:"end"`
 	LogTracer io.ReadWriteCloser `json:"-"`

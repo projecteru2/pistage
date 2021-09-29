@@ -276,7 +276,7 @@ func (fs *FileSystemStore) FinishJobRun(ctx context.Context, run *common.Run, jo
 	defer fs.mutex.Unlock()
 
 	jobRun.End = time.Now()
-	jobRun.Status = common.JobRunStatusFinished
+	jobRun.Status = common.RunStatusFinished
 	content, err := json.Marshal(jobRun)
 	if err != nil {
 		return err

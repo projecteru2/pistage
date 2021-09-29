@@ -188,7 +188,7 @@ func (s *StageServer) runOneJob(pistage *common.Pistage, job *common.Job, run *c
 	jobRun := &common.JobRun{
 		Pistage: pistage.Name,
 		Job:     job.Name,
-		Status:  common.JobRunStatusPending,
+		Status:  common.RunStatusPending,
 	}
 	if err := s.store.CreateJobRun(context.TODO(), run, jobRun); err != nil {
 		logger.WithError(err).Error("[Stager runOneJob] fail to create JobRun")
@@ -207,7 +207,7 @@ func (s *StageServer) runOneJob(pistage *common.Pistage, job *common.Job, run *c
 
 	// start JobRun
 	jobRun.Start = time.Now()
-	jobRun.Status = common.JobRunStatusRunning
+	jobRun.Status = common.RunStatusRunning
 	jobRun.LogTracer = common.NewLogTracer(run.ID, logCollector)
 	if err := s.store.UpdateJobRun(context.TODO(), run, jobRun); err != nil {
 		logger.WithError(err).Errorf("[Stager runOneJob] error update JobRun")
