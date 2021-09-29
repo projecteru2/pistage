@@ -86,76 +86,58 @@ func (t *topo) graph() ([][]string, error) {
 	return r, nil
 }
 
-// emptyVertexName indicates the end of processing.
-// We don't allow an empty name here, so we won't have
-// an empty vertex in the graph.
-// Empty vertex is used as an indicator telling us to stop
-// processing the topologicall sorting.
-var emptyVertexName = ""
+const EmptyVertexName = ""
 
 // stream returns a job channel to get jobs from,
 // a finish channel indicating that one job is finished,
 // and a callback function to tell that all jobs are finished.
-// Remmeber to send a finished job name back to finish channel,
+// Remember to send a finished job name back to finish channel,
 // and call the callback when and only when all jobs are finished.
-func (t *topo) stream() (<-chan string, chan<- string, func()) {
+// This method do not check if the topo is a valid DAG. So do remember to check cyclic before calling this method.
+func (t *topo) stream() (<-chan string, chan<- string) {
 	length := len(t.vertices)
 	t.jobCh = make(chan string, length)
+
+	// finishCh receives the run status of vnames.
+	// If finishCh receives a EmptyVertexName, it means at least one of the jobs failed, no need to proceed.
 	t.finishCh = make(chan string, length)
 
-	go t.checkJobs()
+	go func() {
+		t.iterate()
+		for {
+			if len(t.vertices) == 0 {
+				close(t.jobCh)
+				return
+			}
+			select {
+			case vname := <-t.finishCh:
+				if vname == EmptyVertexName {
+					close(t.jobCh)
+					return
+				}
+				for _, to := range t.edges[vname] {
+					t.vertices[to]--
+				}
+				delete(t.edges, vname)
+			}
+			t.iterate()
+		}
+	}()
 	// t.finishCh is never closed.
 	// Don't worry it will be GCed.
-	return t.jobCh, t.finishCh, func() {
-		t.finishCh <- emptyVertexName
-	}
+	return t.jobCh, t.finishCh
 }
 
-func (t *topo) checkJobs() {
-	defer close(t.jobCh)
-
-	var vertices = []string{}
+func (t *topo) iterate() {
+	vnames := []string{}
+	// push all nodes with 0 indegree to the process channel
 	for vname, indegree := range t.vertices {
-		if indegree != 0 {
-			continue
+		if indegree == 0 {
+			vnames = append(vnames, vname)
 		}
-		vertices = append(vertices, vname)
 	}
-	// If no vertices is chosen, there's a cycle,
-	// which is a wrong input
-	if len(vertices) == 0 {
-		return
-	}
-
-	for _, vname := range vertices {
-		t.jobCh <- vname
-	}
-
-	// NOTE: If there's a cycle, this will become a infinite loop.
-	// So do remember to check the graph before processing.
-	for len(t.vertices) > 0 {
-		vname, ok := <-t.finishCh
-		if !ok || vname == emptyVertexName {
-			return
-		}
-
-		tos := t.edges[vname]
-		for _, to := range tos {
-			t.vertices[to]--
-		}
+	for _, vname := range vnames {
 		delete(t.vertices, vname)
-		delete(t.edges, vname)
-
-		vertices = []string{}
-		for _, vname := range tos {
-			if t.vertices[vname] != 0 {
-				continue
-			}
-			vertices = append(vertices, vname)
-		}
-
-		for _, vname := range vertices {
-			t.jobCh <- vname
-		}
+		t.jobCh <- vname
 	}
 }

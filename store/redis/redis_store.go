@@ -292,7 +292,7 @@ func (rs *RedisStore) FinishJobRun(ctx context.Context, run *common.Run, jobRun 
 	defer rs.mutex.Unlock()
 
 	jobRun.End = time.Now()
-	jobRun.Status = common.JobRunStatusFinished
+	jobRun.Status = common.RunStatusFinished
 	content, err := json.Marshal(jobRun)
 	if err != nil {
 		return err

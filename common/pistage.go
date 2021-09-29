@@ -81,7 +81,7 @@ func (p *Pistage) JobDependencies() ([][]*Job, error) {
 // are finished, or when error occurs and early break the execution.
 // The channel only contains the names of jobs, so use GetJob method to
 // retrieve the real job, since it's too complicated to return a channel of jobs.
-func (p *Pistage) JobStream() (<-chan string, chan<- string, func()) {
+func (p *Pistage) JobStream() (<-chan string, chan<- string) {
 	tp := newTopo()
 	for _, job := range p.Jobs {
 		tp.addDependencies(job.Name, job.DependsOn...)
