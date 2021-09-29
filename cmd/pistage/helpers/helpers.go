@@ -5,23 +5,14 @@ import (
 
 	"github.com/projecteru2/pistage/common"
 	"github.com/projecteru2/pistage/store"
-	"github.com/projecteru2/pistage/store/filesystem"
+	"github.com/projecteru2/pistage/store/mysql"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-// ErrorStorageNotSpecified indicates error when setting the storage type.
-var ErrorStorageNotSpecified = errors.New("Storage not specified")
-
 // InitStorage initiates storage, only one storage can be used.
 func InitStorage(config *common.Config) (store.Store, error) {
-	switch config.Storage.Type {
-	case "file":
-		return filesystem.NewFileSystemStore(config.Storage.FileSystemStoreRoot, store.NewKhoriumManager(config.Khorium))
-	default:
-		return nil, ErrorStorageNotSpecified
-	}
+	return mysql.NewMySQLStore(&config.Storage, store.NewKhoriumManager(config.Khorium))
 }
 
 // SetupLog initiates logrus default logger.

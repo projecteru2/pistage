@@ -8,33 +8,22 @@ import (
 
 // Store is the interface for storage.
 type Store interface {
-	// Pistage
-	CreatePistage(ctx context.Context, pistage *common.Pistage) error
-	GetPistage(ctx context.Context, name string) (*common.Pistage, error)
-	DeletePistage(ctx context.Context, name string) error
+	// Snapshot
+	CreatePistageSnapshot(pistage *common.Pistage) (string, error)
+	GetPistageBySnapshotID(id string) (*common.Pistage, error)
 
-	// Run
-	CreateRun(ctx context.Context, run *common.Run) error
-	GetRun(ctx context.Context, id string) (*common.Run, error)
-	UpdateRun(ctx context.Context, run *common.Run) error
-	GetRunsByPistage(ctx context.Context, name string) ([]*common.Run, error)
+	// Pistage
+	CreatePistageRun(pistage *common.Pistage, version string) (string, error)
+	GetPistageRun(id string) (*common.Run, error)
+	UpdatePistageRun(run *common.Run) error
 
 	// JobRun
-	CreateJobRun(ctx context.Context, run *common.Run, jobRun *common.JobRun) error
-	GetJobRun(ctx context.Context, runID, jobRunID string) (*common.JobRun, error)
-	UpdateJobRun(ctx context.Context, run *common.Run, jobRun *common.JobRun) error
-	FinishJobRun(ctx context.Context, run *common.Run, jobRun *common.JobRun) error
-	GetJobRuns(ctx context.Context, runID string) ([]*common.JobRun, error)
+	CreateJobRun(run *common.Run, jobRun *common.JobRun) error
+	GetJobRun(id string) (*common.JobRun, error)
+	UpdateJobRun(jobRun *common.JobRun) error
 
 	// Register
-	RegisterJob(ctx context.Context, job *common.Job) error
-	GetRegisteredJob(ctx context.Context, name string) (*common.Job, error)
-	RegisterStep(ctx context.Context, step *common.Step) error
-	GetRegisteredStep(ctx context.Context, name string) (*common.Step, error)
-	RegisterKhoriumStep(ctx context.Context, step *common.KhoriumStep) error
 	GetRegisteredKhoriumStep(ctx context.Context, name string) (*common.KhoriumStep, error)
 
-	// Variables
-	SetVariablesForPistage(ctx context.Context, name string, vars map[string]string) error
-	GetVariablesForPistage(ctx context.Context, name string) (map[string]string, error)
+	Close() error
 }

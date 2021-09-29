@@ -1,19 +1,29 @@
 package common
 
 import (
+	"encoding/json"
 	"io"
+	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
+
+	"github.com/projecteru2/pistage/helpers"
 )
 
 var ErrorJobNotFound = errors.New("Job not found")
 
 type Pistage struct {
-	Name        string            `yaml:"name" json:"name"`
+	WorkflowNamespace  string `yaml:"workflow_namespace" json:"workflow_namespace"`
+	WorkflowIdentifier string `yaml:"workflow_identifier" json:"workflow_identifier"`
+
 	Jobs        map[string]*Job   `yaml:"jobs" json:"jobs"`
 	Environment map[string]string `yaml:"env" json:"env"`
 	Executor    string            `yaml:"executor" json:"executor"`
+
+	Content     []byte `yaml:"-" json:"-"`
+	ContentHash string `yaml:"-" json:"-"`
 }
 
 // init set name to all jobs.
@@ -23,6 +33,10 @@ func (p *Pistage) init() {
 	}
 }
 
+func (p *Pistage) Name() string {
+	return strings.Join([]string{p.WorkflowNamespace, p.WorkflowIdentifier}, ":")
+}
+
 // validate currently checks only if the dependency graph contains a cycle.
 func (p *Pistage) validate() error {
 	tp := newTopo()
@@ -30,6 +44,31 @@ func (p *Pistage) validate() error {
 		tp.addDependencies(job.Name, job.DependsOn...)
 	}
 	return tp.checkCyclic()
+}
+
+func (p *Pistage) GenerateHash() error {
+	if p.ContentHash != "" {
+		return nil
+	}
+
+	content, err := json.Marshal(p)
+	if err != nil {
+		return errors.Wrap(err, "marshal pistage")
+	}
+
+	sha1OfContent, err := helpers.Sha1HexDigest(content)
+	if err != nil {
+		return errors.Wrap(err, "generate content hash")
+	}
+
+	p.Content = content
+	p.ContentHash = sha1OfContent
+	return nil
+}
+
+func UnmarshalPistage(marshalled []byte) (p *Pistage, err error) {
+	err = json.Unmarshal(marshalled, &p)
+	return
 }
 
 // JobDependencies parses the dependency relationship of all jobs,
@@ -126,6 +165,10 @@ func FromSpec(content []byte) (*Pistage, error) {
 // MarshalPistage marshals pistage back into yaml format.
 func MarshalPistage(pistage *Pistage) ([]byte, error) {
 	return yaml.Marshal(pistage)
+}
+
+func EpochMillis() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
 // PistageTask contains a pistage and an output tracing stream.

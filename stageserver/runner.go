@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"sync"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -14,15 +13,12 @@ import (
 	"github.com/projecteru2/pistage/store"
 )
 
-// PistageTask contains a pistage and an output tracing stream.
-// Tracing stream is used to trace this process.
+// PistageRunner runs a complete workflow.
 type PistageRunner struct {
 	sync.Mutex
 
 	// Pistage holds the pistage to execute.
 	p *common.Pistage
-
-	status common.RunStatus
 
 	store store.Store
 	// Output is the tracing stream for logs.
@@ -39,39 +35,56 @@ type PistageRunner struct {
 
 func NewRunner(pt *common.PistageTask, store store.Store) *PistageRunner {
 	return &PistageRunner{
-		p:     pt.Pistage,
-		store: store,
-		o:     pt.Output,
+		p:       pt.Pistage,
+		store:   store,
+		o:       pt.Output,
+		jobRuns: map[string]*common.JobRun{},
 	}
 }
 
 func (r *PistageRunner) runWithStream() error {
 	p := r.p
-	logger := logrus.WithField("pistage", p.Name)
+	logger := logrus.WithField("pistage", p.Name())
 
-	if err := r.store.CreatePistage(context.TODO(), p); err != nil {
+	if err := p.GenerateHash(); err != nil {
+		logger.WithError(err).Error("[Stager runWithStream] gen hash failed")
+		return err
+	}
+
+	version, err := r.store.CreatePistageSnapshot(p)
+	if err != nil {
+		logger.WithError(err).Error("[Stager runWithStream] fail to create Pistage")
+		return err
+	}
+
+	runID, err := r.store.CreatePistageRun(p, version)
+	if err != nil {
 		logger.WithError(err).Error("[Stager runWithStream] fail to create Pistage")
 		return err
 	}
 
 	r.run = &common.Run{
-		Pistage: p.Name,
-		Start:   time.Now(),
-	}
-	if err := r.store.CreateRun(context.TODO(), r.run); err != nil {
-		logger.WithError(err).Error("[Stager runWithStream] fail to create Run")
-		return err
+		ID:                 runID,
+		WorkflowNamespace:  p.WorkflowNamespace,
+		WorkflowIdentifier: p.WorkflowIdentifier,
+		Start:              common.EpochMillis(),
+		Status:             common.RunStatusRunning,
 	}
 
 	defer func() {
-		r.run.End = time.Now()
-		if r.status == common.RunStatusRunning {
-			r.status = common.RunStatusFinished
+		r.run.End = common.EpochMillis()
+		if r.run.Status == common.RunStatusRunning {
+			r.run.Status = common.RunStatusFinished
 		}
-		if err := r.store.UpdateRun(context.TODO(), r.run); err != nil {
+		if err := r.store.UpdatePistageRun(r.run); err != nil {
 			logger.WithError(err).Errorf("[Stager runWithStream] error update Run")
 		}
 	}()
+
+	if err := r.store.UpdatePistageRun(r.run); err != nil {
+		logger.WithError(err).Error("[Stager runWithStream] fail to update run")
+		return err
+	}
 
 	once := sync.Once{}
 	jobs, finished, finish := p.JobStream()
@@ -91,9 +104,11 @@ func (r *PistageRunner) runWithStream() error {
 		go func(job *common.Job) {
 			defer wg.Done()
 			if err = r.runOneJob(job); err != nil {
-				once.Do(finish)
-				r.status = common.RunStatusFailed
+				r.Lock()
+				defer r.Unlock()
+				r.run.Status = common.RunStatusFailed
 				logger.WithError(err).Errorf("[Stager runWithStream] error occurred, skip following jobs")
+				once.Do(finish)
 				return
 			}
 			finished <- job.Name
@@ -104,21 +119,26 @@ func (r *PistageRunner) runWithStream() error {
 
 func (r *PistageRunner) runOneJob(job *common.Job) error {
 	p := r.p
-	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name, "executor": p.Executor, "job": job.Name})
+	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "job": job.Name})
 
 	jobRun := &common.JobRun{
-		Pistage: p.Name,
-		Job:     job.Name,
-		Status:  common.RunStatusPending,
+		WorkflowNamespace:  p.WorkflowNamespace,
+		WorkflowIdentifier: p.WorkflowIdentifier,
+		JobName:            job.Name,
+		Status:             common.RunStatusPending,
 	}
-	if err := r.store.CreateJobRun(context.TODO(), r.run, jobRun); err != nil {
+	if err := r.store.CreateJobRun(r.run, jobRun); err != nil {
 		logger.WithError(err).Error("[Stager runOneJob] fail to create JobRun")
 		return err
 	}
 	r.jobRuns[job.Name] = jobRun
 
 	defer func() {
-		if err := r.store.FinishJobRun(context.TODO(), r.run, jobRun); err != nil {
+		if jobRun.Status == common.RunStatusRunning {
+			jobRun.Status = common.RunStatusFinished
+		}
+		jobRun.End = common.EpochMillis()
+		if err := r.store.UpdateJobRun(jobRun); err != nil {
 			logger.WithError(err).Errorf("[Stager runOneJob] error updating JobRun")
 		}
 
@@ -128,10 +148,10 @@ func (r *PistageRunner) runOneJob(job *common.Job) error {
 	}()
 
 	// start JobRun
-	jobRun.Start = time.Now()
+	jobRun.Start = common.EpochMillis()
 	jobRun.Status = common.RunStatusRunning
 	jobRun.LogTracer = common.NewLogTracer(r.run.ID, r.o)
-	if err := r.store.UpdateJobRun(context.TODO(), r.run, jobRun); err != nil {
+	if err := r.store.UpdateJobRun(jobRun); err != nil {
 		logger.WithError(err).Errorf("[Stager runOneJob] error update JobRun")
 		return err
 	}
@@ -139,7 +159,7 @@ func (r *PistageRunner) runOneJob(job *common.Job) error {
 	executorProvider := executors.GetExecutorProvider(p.Executor)
 	if executorProvider == nil {
 		logger.Errorf("[Stager runOneJob] fail to get a provider")
-		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, p.Name)
+		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, p.Name())
 	}
 
 	executor, err := executorProvider.GetJobExecutor(job, p, jobRun.LogTracer)

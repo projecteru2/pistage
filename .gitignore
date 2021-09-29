@@ -5,3 +5,5 @@ pistagefsstorage/
 # IDE
 .idea/
 *.sw[op]
+
+.env

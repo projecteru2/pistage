@@ -27,6 +27,7 @@ func StartPistage(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer store.Close()
 
 	if err := helpers.InitExecutorProvider(config, store); err != nil {
 		return err

@@ -18,16 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PistageClient interface {
-	SetVariables(ctx context.Context, in *SetVariablesRequest, opts ...grpc.CallOption) (*SetVariablesReply, error)
-	GetVariables(ctx context.Context, in *GetVariablesRequest, opts ...grpc.CallOption) (*GetVariablesReply, error)
 	ApplyOneway(ctx context.Context, in *ApplyPistageRequest, opts ...grpc.CallOption) (*ApplyPistageOnewayReply, error)
 	ApplyStream(ctx context.Context, in *ApplyPistageRequest, opts ...grpc.CallOption) (Pistage_ApplyStreamClient, error)
-	GetPistage(ctx context.Context, in *GetPistageRequest, opts ...grpc.CallOption) (*GetPistageReply, error)
-	DeletePistage(ctx context.Context, in *DeletePistageRequest, opts ...grpc.CallOption) (*DeletePistageReply, error)
-	GetRunsByPistage(ctx context.Context, in *GetRunsByPistageRequest, opts ...grpc.CallOption) (*GetRunsByPistageReply, error)
-	GetJobRunsByPistage(ctx context.Context, in *GetJobRunsByPistageRequest, opts ...grpc.CallOption) (*GetJobRunsByPistageReply, error)
-	RegisterJob(ctx context.Context, in *RegisterJobRequest, opts ...grpc.CallOption) (*RegisterJobReply, error)
-	RegisterStep(ctx context.Context, in *RegisterStepRequest, opts ...grpc.CallOption) (*RegisterStepReply, error)
 }
 
 type pistageClient struct {
@@ -36,24 +28,6 @@ type pistageClient struct {
 
 func NewPistageClient(cc grpc.ClientConnInterface) PistageClient {
 	return &pistageClient{cc}
-}
-
-func (c *pistageClient) SetVariables(ctx context.Context, in *SetVariablesRequest, opts ...grpc.CallOption) (*SetVariablesReply, error) {
-	out := new(SetVariablesReply)
-	err := c.cc.Invoke(ctx, "/proto.Pistage/SetVariables", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pistageClient) GetVariables(ctx context.Context, in *GetVariablesRequest, opts ...grpc.CallOption) (*GetVariablesReply, error) {
-	out := new(GetVariablesReply)
-	err := c.cc.Invoke(ctx, "/proto.Pistage/GetVariables", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *pistageClient) ApplyOneway(ctx context.Context, in *ApplyPistageRequest, opts ...grpc.CallOption) (*ApplyPistageOnewayReply, error) {
@@ -97,74 +71,12 @@ func (x *pistageApplyStreamClient) Recv() (*ApplyPistageStreamReply, error) {
 	return m, nil
 }
 
-func (c *pistageClient) GetPistage(ctx context.Context, in *GetPistageRequest, opts ...grpc.CallOption) (*GetPistageReply, error) {
-	out := new(GetPistageReply)
-	err := c.cc.Invoke(ctx, "/proto.Pistage/GetPistage", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pistageClient) DeletePistage(ctx context.Context, in *DeletePistageRequest, opts ...grpc.CallOption) (*DeletePistageReply, error) {
-	out := new(DeletePistageReply)
-	err := c.cc.Invoke(ctx, "/proto.Pistage/DeletePistage", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pistageClient) GetRunsByPistage(ctx context.Context, in *GetRunsByPistageRequest, opts ...grpc.CallOption) (*GetRunsByPistageReply, error) {
-	out := new(GetRunsByPistageReply)
-	err := c.cc.Invoke(ctx, "/proto.Pistage/GetRunsByPistage", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pistageClient) GetJobRunsByPistage(ctx context.Context, in *GetJobRunsByPistageRequest, opts ...grpc.CallOption) (*GetJobRunsByPistageReply, error) {
-	out := new(GetJobRunsByPistageReply)
-	err := c.cc.Invoke(ctx, "/proto.Pistage/GetJobRunsByPistage", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pistageClient) RegisterJob(ctx context.Context, in *RegisterJobRequest, opts ...grpc.CallOption) (*RegisterJobReply, error) {
-	out := new(RegisterJobReply)
-	err := c.cc.Invoke(ctx, "/proto.Pistage/RegisterJob", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *pistageClient) RegisterStep(ctx context.Context, in *RegisterStepRequest, opts ...grpc.CallOption) (*RegisterStepReply, error) {
-	out := new(RegisterStepReply)
-	err := c.cc.Invoke(ctx, "/proto.Pistage/RegisterStep", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // PistageServer is the server API for Pistage service.
 // All implementations must embed UnimplementedPistageServer
 // for forward compatibility
 type PistageServer interface {
-	SetVariables(context.Context, *SetVariablesRequest) (*SetVariablesReply, error)
-	GetVariables(context.Context, *GetVariablesRequest) (*GetVariablesReply, error)
 	ApplyOneway(context.Context, *ApplyPistageRequest) (*ApplyPistageOnewayReply, error)
 	ApplyStream(*ApplyPistageRequest, Pistage_ApplyStreamServer) error
-	GetPistage(context.Context, *GetPistageRequest) (*GetPistageReply, error)
-	DeletePistage(context.Context, *DeletePistageRequest) (*DeletePistageReply, error)
-	GetRunsByPistage(context.Context, *GetRunsByPistageRequest) (*GetRunsByPistageReply, error)
-	GetJobRunsByPistage(context.Context, *GetJobRunsByPistageRequest) (*GetJobRunsByPistageReply, error)
-	RegisterJob(context.Context, *RegisterJobRequest) (*RegisterJobReply, error)
-	RegisterStep(context.Context, *RegisterStepRequest) (*RegisterStepReply, error)
 	mustEmbedUnimplementedPistageServer()
 }
 
@@ -172,35 +84,11 @@ type PistageServer interface {
 type UnimplementedPistageServer struct {
 }
 
-func (UnimplementedPistageServer) SetVariables(context.Context, *SetVariablesRequest) (*SetVariablesReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetVariables not implemented")
-}
-func (UnimplementedPistageServer) GetVariables(context.Context, *GetVariablesRequest) (*GetVariablesReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetVariables not implemented")
-}
 func (UnimplementedPistageServer) ApplyOneway(context.Context, *ApplyPistageRequest) (*ApplyPistageOnewayReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ApplyOneway not implemented")
 }
 func (UnimplementedPistageServer) ApplyStream(*ApplyPistageRequest, Pistage_ApplyStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method ApplyStream not implemented")
-}
-func (UnimplementedPistageServer) GetPistage(context.Context, *GetPistageRequest) (*GetPistageReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPistage not implemented")
-}
-func (UnimplementedPistageServer) DeletePistage(context.Context, *DeletePistageRequest) (*DeletePistageReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeletePistage not implemented")
-}
-func (UnimplementedPistageServer) GetRunsByPistage(context.Context, *GetRunsByPistageRequest) (*GetRunsByPistageReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetRunsByPistage not implemented")
-}
-func (UnimplementedPistageServer) GetJobRunsByPistage(context.Context, *GetJobRunsByPistageRequest) (*GetJobRunsByPistageReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetJobRunsByPistage not implemented")
-}
-func (UnimplementedPistageServer) RegisterJob(context.Context, *RegisterJobRequest) (*RegisterJobReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RegisterJob not implemented")
-}
-func (UnimplementedPistageServer) RegisterStep(context.Context, *RegisterStepRequest) (*RegisterStepReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RegisterStep not implemented")
 }
 func (UnimplementedPistageServer) mustEmbedUnimplementedPistageServer() {}
 
@@ -213,42 +101,6 @@ type UnsafePistageServer interface {
 
 func RegisterPistageServer(s grpc.ServiceRegistrar, srv PistageServer) {
 	s.RegisterService(&Pistage_ServiceDesc, srv)
-}
-
-func _Pistage_SetVariables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetVariablesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PistageServer).SetVariables(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Pistage/SetVariables",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PistageServer).SetVariables(ctx, req.(*SetVariablesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Pistage_GetVariables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetVariablesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PistageServer).GetVariables(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Pistage/GetVariables",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PistageServer).GetVariables(ctx, req.(*GetVariablesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _Pistage_ApplyOneway_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -290,114 +142,6 @@ func (x *pistageApplyStreamServer) Send(m *ApplyPistageStreamReply) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Pistage_GetPistage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetPistageRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PistageServer).GetPistage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Pistage/GetPistage",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PistageServer).GetPistage(ctx, req.(*GetPistageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Pistage_DeletePistage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeletePistageRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PistageServer).DeletePistage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Pistage/DeletePistage",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PistageServer).DeletePistage(ctx, req.(*DeletePistageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Pistage_GetRunsByPistage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRunsByPistageRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PistageServer).GetRunsByPistage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Pistage/GetRunsByPistage",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PistageServer).GetRunsByPistage(ctx, req.(*GetRunsByPistageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Pistage_GetJobRunsByPistage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetJobRunsByPistageRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PistageServer).GetJobRunsByPistage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Pistage/GetJobRunsByPistage",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PistageServer).GetJobRunsByPistage(ctx, req.(*GetJobRunsByPistageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Pistage_RegisterJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterJobRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PistageServer).RegisterJob(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Pistage/RegisterJob",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PistageServer).RegisterJob(ctx, req.(*RegisterJobRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Pistage_RegisterStep_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterStepRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PistageServer).RegisterStep(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.Pistage/RegisterStep",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PistageServer).RegisterStep(ctx, req.(*RegisterStepRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // Pistage_ServiceDesc is the grpc.ServiceDesc for Pistage service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -406,40 +150,8 @@ var Pistage_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*PistageServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SetVariables",
-			Handler:    _Pistage_SetVariables_Handler,
-		},
-		{
-			MethodName: "GetVariables",
-			Handler:    _Pistage_GetVariables_Handler,
-		},
-		{
 			MethodName: "ApplyOneway",
 			Handler:    _Pistage_ApplyOneway_Handler,
-		},
-		{
-			MethodName: "GetPistage",
-			Handler:    _Pistage_GetPistage_Handler,
-		},
-		{
-			MethodName: "DeletePistage",
-			Handler:    _Pistage_DeletePistage_Handler,
-		},
-		{
-			MethodName: "GetRunsByPistage",
-			Handler:    _Pistage_GetRunsByPistage_Handler,
-		},
-		{
-			MethodName: "GetJobRunsByPistage",
-			Handler:    _Pistage_GetJobRunsByPistage_Handler,
-		},
-		{
-			MethodName: "RegisterJob",
-			Handler:    _Pistage_RegisterJob_Handler,
-		},
-		{
-			MethodName: "RegisterStep",
-			Handler:    _Pistage_RegisterStep_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

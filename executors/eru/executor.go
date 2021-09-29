@@ -180,34 +180,6 @@ func (e *EruJobExecutor) Execute(ctx context.Context) error {
 	return nil
 }
 
-// replaceStepWithUses replaces the step with the actual step identified by uses.
-// Name will not be replaced, the commands to execute aka Run and OnError will be replaced,
-// also Environment and With will be merged, uses' environment and with has a lower priority,
-// will be overridden by step's environment and with,
-// If uses is not given, directly return the original step.
-func (e *EruJobExecutor) replaceStepWithUses(ctx context.Context, step *common.Step) (*common.Step, error) {
-	if step.Uses == "" {
-		return step, nil
-	}
-
-	uses, err := e.store.GetRegisteredStep(ctx, step.Uses)
-	if err != nil {
-		return nil, err
-	}
-	s := &common.Step{
-		Name:        step.Name,
-		Run:         uses.Run,
-		OnError:     uses.OnError,
-		Environment: command.MergeVariables(uses.Environment, step.Environment),
-		With:        command.MergeVariables(uses.With, step.With),
-	}
-	// in case name of this step is empty
-	if s.Name == "" {
-		s.Name = uses.Name
-	}
-	return s, nil
-}
-
 // executeStep executes a step.
 // It first replace the step with uses if uses is given,
 // then prepare the arguments and environments to the command.
@@ -218,11 +190,6 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 		err  error
 		vars map[string]string
 	)
-
-	vars, err = e.store.GetVariablesForPistage(ctx, e.pistage.Name)
-	if err != nil {
-		return err
-	}
 
 	environment := command.MergeVariables(e.jobEnvironment, step.Environment)
 
@@ -246,12 +213,7 @@ func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 		return err
 	}
 
-	vars, err := e.store.GetVariablesForPistage(ctx, e.pistage.Name)
-	if err != nil {
-		return err
-	}
-
-	arguments, err := variable.RenderArguments(step.With, step.Environment, vars)
+	arguments, err := variable.RenderArguments(step.With, step.Environment, map[string]string{})
 	if err != nil {
 		return err
 	}

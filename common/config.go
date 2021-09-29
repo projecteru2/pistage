@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"gopkg.in/yaml.v3"
@@ -15,10 +16,10 @@ type Config struct {
 	DefaultJobExecutor       string `yaml:"default_job_executor" default:"eru"`
 	DefaultJobExecuteTimeout int    `yaml:"default_job_execute_timeout" default:"1200"`
 
-	Eru     EruConfig     `yaml:"eru"`
-	SSH     SSHConfig     `yaml:"ssh"`
-	Storage StorageConfig `yaml:"storage"`
-	Khorium KhoriumConfig `yaml:"khorium"`
+	Eru     EruConfig           `yaml:"eru"`
+	SSH     SSHConfig           `yaml:"ssh"`
+	Storage SQLDataSourceConfig `yaml:"storage"`
+	Khorium KhoriumConfig       `yaml:"khorium"`
 }
 
 type EruConfig struct {
@@ -39,14 +40,27 @@ type SSHConfig struct {
 	Address    string `yaml:"address"`
 }
 
-type StorageConfig struct {
-	Type                string `yaml:"type"`
-	FileSystemStoreRoot string `yaml:"filesystem_store_root"`
-}
-
 type KhoriumConfig struct {
 	GitLabUsername    string `yaml:"gitlab_username"`
 	GitLabAccessToken string `yaml:"gitlab_access_token"`
+}
+
+type SQLDataSourceConfig struct {
+	Username     string `yaml:"username" default:"root"`
+	Password     string `yaml:"password" default:""`
+	Host         string `yaml:"host" default:"localhost"`
+	Port         int    `yaml:"port" default:"3306"`
+	Database     string `yaml:"database" default:"pistage"`
+	MaxLifetime  int    `yaml:"max_lifetime" default:"30"`
+	MaxConns     int    `yaml:"max_conns" default:"10"`
+	MaxIdleConns int    `yaml:"max_idle_conns" default:"5"`
+	Timeout      int    `yaml:"timeout" default:"5"`
+	ReadTimeout  int    `yaml:"read_timeout" default:"5"`
+	WriteTimeout int    `yaml:"write_timeout" default:"5"`
+}
+
+func (c SQLDataSourceConfig) DSN() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=Local&timeout=%ds&readTimeout=%ds&writeTimeout=%ds", c.Username, c.Password, c.Host, c.Port, c.Database, c.Timeout, c.ReadTimeout, c.WriteTimeout)
 }
 
 func (c *Config) initDefault() {

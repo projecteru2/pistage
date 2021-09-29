@@ -21,9 +21,6 @@ func main() {
 		Version: version.VERSION,
 		Commands: []*cli.Command{
 			commands.ApplyCommands(),
-			commands.VariablesCommands(),
-			commands.JobCommands(),
-			commands.StepCommands(),
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{

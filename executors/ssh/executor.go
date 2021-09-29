@@ -169,34 +169,6 @@ func (s *SSHJobExecutor) Execute(ctx context.Context) error {
 	return nil
 }
 
-// replaceStepWithUses replaces the step with the actual step identified by uses.
-// Name will not be replaced, the commands to execute aka Run and OnError will be replaced,
-// also Environment and With will be merged, uses' environment and with has a lower priority,
-// will be overridden by step's environment and with,
-// If uses is not given, directly return the original step.
-func (s *SSHJobExecutor) replaceStepWithUses(ctx context.Context, step *common.Step) (*common.Step, error) {
-	if step.Uses == "" {
-		return step, nil
-	}
-
-	uses, err := s.store.GetRegisteredStep(ctx, step.Uses)
-	if err != nil {
-		return nil, err
-	}
-	realStep := &common.Step{
-		Name:        step.Name,
-		Run:         uses.Run,
-		OnError:     uses.OnError,
-		Environment: command.MergeVariables(uses.Environment, step.Environment),
-		With:        command.MergeVariables(uses.With, step.With),
-	}
-	// in case name of this step is empty
-	if realStep.Name == "" {
-		realStep.Name = uses.Name
-	}
-	return realStep, nil
-}
-
 // executeStep executes a step.
 // It first replace the step with uses if uses is given,
 // then prepare the arguments and environments to the command.
@@ -207,11 +179,6 @@ func (s *SSHJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 		err  error
 		vars map[string]string
 	)
-
-	vars, err = s.store.GetVariablesForPistage(ctx, s.pistage.Name)
-	if err != nil {
-		return err
-	}
 
 	environment := command.MergeVariables(s.jobEnvironment, step.Environment)
 
@@ -235,12 +202,7 @@ func (s *SSHJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 		return err
 	}
 
-	vars, err := s.store.GetVariablesForPistage(ctx, s.pistage.Name)
-	if err != nil {
-		return err
-	}
-
-	arguments, err := variable.RenderArguments(step.With, step.Environment, vars)
+	arguments, err := variable.RenderArguments(step.With, step.Environment, map[string]string{})
 	if err != nil {
 		return err
 	}

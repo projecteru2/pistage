@@ -1,42 +1,11 @@
 syntax = "proto3";
 package proto;
-import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/projecteru2/pistage/apiserver/grpc/proto";
 
 service Pistage {
-  rpc SetVariables(SetVariablesRequest) returns (SetVariablesReply) {};
-  rpc GetVariables(GetVariablesRequest) returns (GetVariablesReply) {};
-
   rpc ApplyOneway(ApplyPistageRequest) returns (ApplyPistageOnewayReply) {};
   rpc ApplyStream(ApplyPistageRequest) returns (stream ApplyPistageStreamReply) {};
-  rpc GetPistage(GetPistageRequest) returns (GetPistageReply) {};
-  rpc DeletePistage(DeletePistageRequest) returns (DeletePistageReply) {};
-
-  rpc GetRunsByPistage(GetRunsByPistageRequest) returns (GetRunsByPistageReply) {};
-  rpc GetJobRunsByPistage(GetJobRunsByPistageRequest) returns (GetJobRunsByPistageReply) {};
-
-  rpc RegisterJob(RegisterJobRequest) returns (RegisterJobReply) {};
-  rpc RegisterStep(RegisterStepRequest) returns (RegisterStepReply) {};
-}
-
-message SetVariablesRequest {
-  string name = 1;
-  map<string, string> variables = 2;
-}
-
-message SetVariablesReply {
-  string name = 1;
-  bool success = 2;
-}
-
-message GetVariablesRequest {
-  string name = 1;
-}
-
-message GetVariablesReply {
-  string name = 1;
-  map<string, string> variables = 2;
 }
 
 message ApplyPistageRequest {
@@ -52,81 +21,4 @@ message ApplyPistageStreamReply {
   string name = 1;
   int64 logtype = 2;
   string log = 3;
-}
-
-message GetPistageRequest {
-  string name = 1;
-}
-
-message GetPistageReply {
-  string name = 1;
-  string content = 2;
-}
-
-message DeletePistageRequest {
-  string name = 1;
-}
-
-message DeletePistageReply {
-  string name = 1;
-  bool success = 2;
-}
-
-message GetRunsByPistageRequest {
-  string name = 1;
-  int64 offset = 2;
-  int64 limit = 3;
-}
-
-message GetRunsByPistageReply {
-  string name = 1;
-  repeated Run runs = 2;
-}
-
-message GetJobRunsByPistageRequest {
-  string name = 1;
-  string runID = 2;
-  int64 offset = 3;
-  int64 limit = 4;
-}
-
-message GetJobRunsByPistageReply {
-  string name = 1;
-  string runID = 2;
-  repeated JobRun jobRuns = 3;
-}
-
-message RegisterJobRequest {
-  string content = 1;
-}
-
-message RegisterJobReply {
-  string name = 1;
-  bool success = 2;
-}
-
-message RegisterStepRequest {
-  string content = 1;
-}
-
-message RegisterStepReply {
-  string name = 1;
-  bool success = 2;
-}
-
-message Run {
-  string id = 1;
-  string Pistage = 2;
-  google.protobuf.Timestamp start = 3;
-  google.protobuf.Timestamp end = 4;
-}
-
-message JobRun {
-  string id = 1;
-  string Pistage = 2;
-  string job = 3;
-  string status = 4;
-  google.protobuf.Timestamp start = 5;
-  google.protobuf.Timestamp end = 6;
-  string log = 7;
 }

@@ -50,25 +50,6 @@ func (g *GRPCServer) Stop() {
 	logrus.Info("[GRPCServer] graceful stopped")
 }
 
-func (g *GRPCServer) SetVariables(ctx context.Context, req *proto.SetVariablesRequest) (*proto.SetVariablesReply, error) {
-	err := g.store.SetVariablesForPistage(ctx, req.GetName(), req.GetVariables())
-	return &proto.SetVariablesReply{
-		Name:    req.GetName(),
-		Success: err == nil,
-	}, err
-}
-
-func (g *GRPCServer) GetVariables(ctx context.Context, req *proto.GetVariablesRequest) (*proto.GetVariablesReply, error) {
-	vars, err := g.store.GetVariablesForPistage(ctx, req.GetName())
-	if err != nil {
-		return nil, err
-	}
-	return &proto.GetVariablesReply{
-		Name:      req.GetName(),
-		Variables: vars,
-	}, nil
-}
-
 func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageRequest) (*proto.ApplyPistageOnewayReply, error) {
 	pistage, err := common.FromSpec([]byte(req.GetContent()))
 	if err != nil {
@@ -78,7 +59,7 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 	// Discard the output
 	g.stager.Add(&common.PistageTask{Pistage: pistage, Output: common.ClosableDiscard})
 	return &proto.ApplyPistageOnewayReply{
-		Name:    pistage.Name,
+		Name:    pistage.Name(),
 		Success: err == nil,
 	}, err
 }
@@ -98,101 +79,11 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pi
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		if err := stream.Send(&proto.ApplyPistageStreamReply{
-			Name: pistage.Name,
+			Name: pistage.Name(),
 			Log:  scanner.Text(),
 		}); err != nil {
 			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPistageStreamReply")
 		}
 	}
 	return nil
-}
-
-func (g *GRPCServer) GetPistage(ctx context.Context, req *proto.GetPistageRequest) (*proto.GetPistageReply, error) {
-	pistage, err := g.store.GetPistage(ctx, req.GetName())
-	if err != nil {
-		return nil, err
-	}
-
-	content, err := common.MarshalPistage(pistage)
-	if err != nil {
-		return nil, err
-	}
-
-	return &proto.GetPistageReply{
-		Name:    pistage.Name,
-		Content: string(content),
-	}, nil
-}
-
-func (g *GRPCServer) DeletePistage(ctx context.Context, req *proto.DeletePistageRequest) (*proto.DeletePistageReply, error) {
-	err := g.store.DeletePistage(ctx, req.GetName())
-	return &proto.DeletePistageReply{
-		Name:    req.GetName(),
-		Success: err == nil,
-	}, err
-}
-
-func (g *GRPCServer) GetRunsByPistage(ctx context.Context, req *proto.GetRunsByPistageRequest) (*proto.GetRunsByPistageReply, error) {
-	runs, err := g.store.GetRunsByPistage(ctx, req.GetName())
-	if err != nil {
-		return nil, err
-	}
-
-	pbRuns := []*proto.Run{}
-	for _, run := range runs {
-		pbRuns = append(pbRuns, toGRPCRun(run))
-	}
-	return &proto.GetRunsByPistageReply{
-		Name: req.GetName(),
-		Runs: pbRuns,
-	}, nil
-}
-
-func (g *GRPCServer) GetJobRunsByPistage(ctx context.Context, req *proto.GetJobRunsByPistageRequest) (*proto.GetJobRunsByPistageReply, error) {
-	jobRuns, err := g.store.GetJobRuns(ctx, req.GetRunID())
-	if err != nil {
-		return nil, err
-	}
-
-	pbJobRuns := []*proto.JobRun{}
-	for _, jobRun := range jobRuns {
-		pbJobRuns = append(pbJobRuns, toGRPCJobRun(jobRun))
-	}
-	return &proto.GetJobRunsByPistageReply{
-		Name:    req.GetName(),
-		RunID:   req.GetRunID(),
-		JobRuns: pbJobRuns,
-	}, nil
-}
-
-func (g *GRPCServer) RegisterJob(ctx context.Context, req *proto.RegisterJobRequest) (*proto.RegisterJobReply, error) {
-	job, err := common.LoadJob([]byte(req.GetContent()))
-	if err != nil {
-		return nil, err
-	}
-
-	if err := g.store.RegisterJob(ctx, job); err != nil {
-		return nil, err
-	}
-
-	return &proto.RegisterJobReply{
-		Name:    job.Name,
-		Success: true,
-	}, nil
-}
-
-func (g *GRPCServer) RegisterStep(ctx context.Context, req *proto.RegisterStepRequest) (*proto.RegisterStepReply, error) {
-	step, err := common.LoadStep([]byte(req.GetContent()))
-	if err != nil {
-		return nil, err
-	}
-
-	if err := g.store.RegisterStep(ctx, step); err != nil {
-		return nil, err
-	}
-
-	return &proto.RegisterStepReply{
-		Name:    step.Name,
-		Success: true,
-	}, nil
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"time"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
@@ -86,20 +85,23 @@ var (
 )
 
 type Run struct {
-	ID      string    `json:"id"`
-	Pistage string    `json:"pistage"`
-	Start   time.Time `json:"start"`
-	End     time.Time `json:"end"`
+	ID                 string    `json:"id"`
+	WorkflowNamespace  string    `json:"workflow_namespace"`
+	WorkflowIdentifier string    `json:"workflow_identifier"`
+	Status             RunStatus `json:"status"`
+	Start              int64     `json:"start"`
+	End                int64     `json:"end"`
 }
 
 type JobRun struct {
-	ID        string             `json:"id"`
-	Pistage   string             `json:"pistage"`
-	Job       string             `json:"job"`
-	Status    RunStatus          `json:"status"`
-	Start     time.Time          `json:"start"`
-	End       time.Time          `json:"end"`
-	LogTracer io.ReadWriteCloser `json:"-"`
+	ID                 string             `json:"id"`
+	WorkflowNamespace  string             `json:"workflow_namespace"`
+	WorkflowIdentifier string             `json:"workflow_identifier"`
+	JobName            string             `json:"job_name"`
+	Status             RunStatus          `json:"status"`
+	Start              int64              `json:"start"`
+	End                int64              `json:"end"`
+	LogTracer          io.ReadWriteCloser `json:"-"`
 }
 
 var (
