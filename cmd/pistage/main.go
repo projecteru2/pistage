@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/projecteru2/phistage/cmd/phistage/server"
-	"github.com/projecteru2/phistage/cmd/phistage/version"
+	"github.com/projecteru2/pistage/cmd/pistage/server"
+	"github.com/projecteru2/pistage/cmd/pistage/version"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -17,14 +17,14 @@ func main() {
 	}
 
 	app := &cli.App{
-		Name:    "phistage",
+		Name:    "pistage",
 		Version: version.VERSION,
 		Commands: []*cli.Command{
 			{
 				Name:  "server",
-				Usage: "Run Phistage server",
+				Usage: "Run Pistage server",
 				Action: func(c *cli.Context) error {
-					return server.StartPhistage(c)
+					return server.StartPistage(c)
 				},
 				Flags: []cli.Flag{
 					&cli.StringFlag{
@@ -40,14 +40,14 @@ func main() {
 			&cli.StringFlag{
 				Name:    "config",
 				Aliases: []string{"c"},
-				Value:   "phistage.yml",
+				Value:   "pistage.yml",
 				Usage:   "Path to config file",
 			},
 		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		logrus.WithError(err).Errorln("Failed to run phistage")
+		logrus.WithError(err).Errorln("Failed to run pistage")
 		return
 	}
 }

@@ -13,7 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	corepb "github.com/projecteru2/core/rpc/gen"
-	"github.com/projecteru2/phistage/common"
+	"github.com/projecteru2/pistage/common"
 )
 
 var ErrorCopyToContainer = errors.New("Error copy to container")

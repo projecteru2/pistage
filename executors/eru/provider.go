@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/executors"
-	"github.com/projecteru2/phistage/store"
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/executors"
+	"github.com/projecteru2/pistage/store"
 
 	coreclient "github.com/projecteru2/core/client"
 	corepb "github.com/projecteru2/core/rpc/gen"
@@ -39,6 +39,6 @@ func (ep *EruJobExecutorProvider) GetName() string {
 	return "eru"
 }
 
-func (ep *EruJobExecutorProvider) GetJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer) (executors.JobExecutor, error) {
-	return NewEruJobExecutor(job, phistage, output, ep.eru, ep.store, ep.config)
+func (ep *EruJobExecutorProvider) GetJobExecutor(job *common.Job, pistage *common.Pistage, output io.Writer) (executors.JobExecutor, error) {
+	return NewEruJobExecutor(job, pistage, output, ep.eru, ep.store, ep.config)
 }

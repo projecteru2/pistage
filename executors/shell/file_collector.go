@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/projecteru2/phistage/helpers"
+	"github.com/projecteru2/pistage/helpers"
 )
 
 // ShellFileCollector collects or sends files from or to working environment.

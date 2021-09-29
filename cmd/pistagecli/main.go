@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/projecteru2/phistage/cmd/phistage/version"
-	"github.com/projecteru2/phistage/cmd/phistagecli/commands"
+	"github.com/projecteru2/pistage/cmd/pistage/version"
+	"github.com/projecteru2/pistage/cmd/pistagecli/commands"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -17,7 +17,7 @@ func main() {
 	}
 
 	app := &cli.App{
-		Name:    "phistagecli",
+		Name:    "pistagecli",
 		Version: version.VERSION,
 		Commands: []*cli.Command{
 			commands.ApplyCommands(),
@@ -30,13 +30,13 @@ func main() {
 				Name:    "host",
 				Aliases: []string{"H"},
 				Value:   ":9736",
-				Usage:   "Phistage address",
+				Usage:   "Pistage address",
 			},
 		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		logrus.WithError(err).Errorln("Failed to run phistagecli")
+		logrus.WithError(err).Errorln("Failed to run pistagecli")
 		return
 	}
 }

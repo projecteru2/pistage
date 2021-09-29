@@ -1,4 +1,7 @@
 /pistage.yml
-/phistage.yml
-phistagefsstorage/
+pistagefsstorage/
 /bin/
+
+# IDE
+.idea/
+*.sw[op]

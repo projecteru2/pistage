@@ -1,15 +1,16 @@
 package grpc
 
 import (
-	"github.com/projecteru2/phistage/apiserver/grpc/proto"
-	"github.com/projecteru2/phistage/common"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/projecteru2/pistage/apiserver/grpc/proto"
+	"github.com/projecteru2/pistage/common"
 )
 
 func toGRPCRun(r *common.Run) *proto.Run {
 	return &proto.Run{
 		Id:       r.ID,
-		Phistage: r.Phistage,
+		Pistage: r.Pistage,
 		Start:    timestamppb.New(r.Start),
 		End:      timestamppb.New(r.End),
 	}
@@ -18,7 +19,7 @@ func toGRPCRun(r *common.Run) *proto.Run {
 func toGRPCJobRun(j *common.JobRun) *proto.JobRun {
 	return &proto.JobRun{
 		Id:       j.ID,
-		Phistage: j.Phistage,
+		Pistage: j.Pistage,
 		Job:      j.Job,
 		Status:   string(j.Status),
 		Start:    timestamppb.New(j.Start),

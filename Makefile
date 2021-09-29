@@ -1,7 +1,7 @@
-.PHONY: phistage phistagecli test grpc
+.PHONY: pistage pistagecli test grpc
 
-PKG = github.com/projecteru2/phistage
-VERSIONPKG = $(PKG)/cmd/phistage/version
+PKG = github.com/projecteru2/pistage
+VERSIONPKG = $(PKG)/cmd/pistage/version
 
 REVISION := $(shell git rev-parse HEAD)
 BUILTAT := $(shell date +%Y-%m-%dT%H:%M:%S)
@@ -17,20 +17,20 @@ GO_LDFLAGS ?= -s -X $(VERSIONPKG).REVISION=$(REVISION) \
                  -X $(VERSIONPKG).BUILTAT=$(BUILTAT) \
 				 -X $(VERSIONPKG).VERSION=$(VERSION)
 
-all: phistage phistagecli
+all: pistage pistagecli
 
-phistage:
+pistage:
 	mkdir -p bin
-	go build -ldflags "$(GO_LDFLAGS)" -o bin/phistage ./cmd/phistage
+	go build -ldflags "$(GO_LDFLAGS)" -o bin/pistage ./cmd/pistage
 
-phistagecli:
+pistagecli:
 	mkdir -p bin
-	go build -ldflags "$(GO_LDFLAGS)" -o bin/phistagecli ./cmd/phistagecli
+	go build -ldflags "$(GO_LDFLAGS)" -o bin/pistagecli ./cmd/pistagecli
 
 test:
 	go test -v -cover -count=1 ./...
 
 grpc:
-	protoc --go_out=plugins=grpc:./apiserver/grpc/proto \
-		   --go_opt=paths=source_relative \
-		   --proto_path=./apiserver/grpc/proto phistage.proto
+	protoc --go_out=. --go-grpc_out=. \
+		   --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative \
+		   ./apiserver/grpc/proto/pistage.proto

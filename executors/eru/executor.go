@@ -12,10 +12,10 @@ import (
 	corepb "github.com/projecteru2/core/rpc/gen"
 	"github.com/sirupsen/logrus"
 
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/helpers/command"
-	"github.com/projecteru2/phistage/helpers/variable"
-	"github.com/projecteru2/phistage/store"
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/helpers/command"
+	"github.com/projecteru2/pistage/helpers/variable"
+	"github.com/projecteru2/pistage/store"
 )
 
 const (
@@ -33,8 +33,8 @@ type EruJobExecutor struct {
 	store  store.Store
 	config *common.Config
 
-	job      *common.Job
-	phistage *common.Phistage
+	job     *common.Job
+	pistage *common.Pistage
 
 	output         io.Writer
 	workloadID     string
@@ -43,16 +43,16 @@ type EruJobExecutor struct {
 }
 
 // NewEruJobExecutor creates an ERU executor for this job.
-// Since job needs to know its context, phistage is assigned too.
-func NewEruJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer, eru corepb.CoreRPCClient, store store.Store, config *common.Config) (*EruJobExecutor, error) {
+// Since job needs to know its context, pistage is assigned too.
+func NewEruJobExecutor(job *common.Job, pistage *common.Pistage, output io.Writer, eru corepb.CoreRPCClient, store store.Store, config *common.Config) (*EruJobExecutor, error) {
 	return &EruJobExecutor{
 		eru:            eru,
 		store:          store,
 		config:         config,
 		job:            job,
-		phistage:       phistage,
+		pistage:        pistage,
 		output:         output,
-		jobEnvironment: phistage.Environment,
+		jobEnvironment: pistage.Environment,
 		workingDir:     config.Eru.DefaultWorkingDir,
 	}, nil
 }
@@ -108,8 +108,8 @@ func (e *EruJobExecutor) prepareJobRuntime(ctx context.Context) error {
 // This will be set to the whole running context within the workload.
 func (e *EruJobExecutor) defaultEnvironmentVariables() map[string]string {
 	return map[string]string{
-		"PHISTAGE_WORKING_DIR": e.workingDir,
-		"PHISTAGE_JOB_NAME":    e.job.Name,
+		"PISTAGE_WORKING_DIR": e.workingDir,
+		"PISTAGE_JOB_NAME":    e.job.Name,
 	}
 }
 
@@ -145,7 +145,7 @@ func (e *EruJobExecutor) buildEruLambdaOptions() *corepb.RunAndWaitOptions {
 }
 
 func (e *EruJobExecutor) prepareFileContext(ctx context.Context) error {
-	dependentJobs := e.phistage.GetJobs(e.job.DependsOn)
+	dependentJobs := e.pistage.GetJobs(e.job.DependsOn)
 	for _, job := range dependentJobs {
 		fc := job.GetFileCollector()
 		if fc == nil {
@@ -218,7 +218,7 @@ func (e *EruJobExecutor) executeStep(ctx context.Context, step *common.Step) err
 		vars map[string]string
 	)
 
-	vars, err = e.store.GetVariablesForPhistage(ctx, e.phistage.Name)
+	vars, err = e.store.GetVariablesForPistage(ctx, e.pistage.Name)
 	if err != nil {
 		return err
 	}
@@ -245,7 +245,7 @@ func (e *EruJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 		return err
 	}
 
-	vars, err := e.store.GetVariablesForPhistage(ctx, e.phistage.Name)
+	vars, err := e.store.GetVariablesForPistage(ctx, e.pistage.Name)
 	if err != nil {
 		return err
 	}

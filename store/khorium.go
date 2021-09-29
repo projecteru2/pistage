@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/projecteru2/phistage/common"
+	"github.com/projecteru2/pistage/common"
 )
 
 // KhoriumManager manages khorium steps.
@@ -51,7 +51,7 @@ func (k *KhoriumManager) GetKhoriumStep(ctx context.Context, name string) (*comm
 		khoriumVersion = "master"
 	}
 
-	dir, err := ioutil.TempDir("", "phistage-khoriumstep-*")
+	dir, err := ioutil.TempDir("", "pistage-khoriumstep-*")
 	if err != nil {
 		return nil, err
 	}

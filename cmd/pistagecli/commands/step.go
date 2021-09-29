@@ -4,7 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 
-	"github.com/projecteru2/phistage/apiserver/grpc/proto"
+	"github.com/projecteru2/pistage/apiserver/grpc/proto"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"

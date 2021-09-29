@@ -12,10 +12,11 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/helpers"
-	"github.com/projecteru2/phistage/store"
 	"gopkg.in/yaml.v3"
+
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/helpers"
+	"github.com/projecteru2/pistage/store"
 )
 
 type RedisStore struct {
@@ -52,18 +53,18 @@ func currentTimestamp() float64 {
 	return float64(time.Now().UnixNano())
 }
 
-// string ${root}:phistage:${sha1 of phistage name}:meta:${sha1 of file content}
-// sorted set ${root}:phistage:${sha1 of phistage name}:meta:records, score: timestamp, member: sha1 of file content
-func (rs *RedisStore) CreatePhistage(ctx context.Context, phistage *common.Phistage) error {
+// string ${root}:pistage:${sha1 of pistage name}:meta:${sha1 of file content}
+// sorted set ${root}:pistage:${sha1 of pistage name}:meta:records, score: timestamp, member: sha1 of file content
+func (rs *RedisStore) CreatePistage(ctx context.Context, pistage *common.Pistage) error {
 	rs.mutex.Lock()
 	defer rs.mutex.Unlock()
 
-	sha1OfName, err := helpers.Sha1HexDigest(phistage.Name)
+	sha1OfName, err := helpers.Sha1HexDigest(pistage.Name)
 	if err != nil {
 		return err
 	}
 
-	content, err := json.Marshal(phistage)
+	content, err := json.Marshal(pistage)
 	if err != nil {
 		return err
 	}
@@ -73,8 +74,8 @@ func (rs *RedisStore) CreatePhistage(ctx context.Context, phistage *common.Phist
 		return err
 	}
 
-	contentKey := makeKey(rs.root, "phistage", sha1OfName, "meta", sha1OfFile)
-	recordsKey := makeKey(rs.root, "phistage", sha1OfName, "meta:records")
+	contentKey := makeKey(rs.root, "pistage", sha1OfName, "meta", sha1OfFile)
+	recordsKey := makeKey(rs.root, "pistage", sha1OfName, "meta:records")
 
 	pipe := rs.client.Pipeline()
 	pipe.Set(ctx, contentKey, content, 0)
@@ -83,8 +84,8 @@ func (rs *RedisStore) CreatePhistage(ctx context.Context, phistage *common.Phist
 	return err
 }
 
-// sorted set ${root}:phistage:${sha1 of phistage name}:meta:records, score: timestamp, member: sha1 of file content
-func (rs *RedisStore) GetPhistage(ctx context.Context, name string) (*common.Phistage, error) {
+// sorted set ${root}:pistage:${sha1 of pistage name}:meta:records, score: timestamp, member: sha1 of file content
+func (rs *RedisStore) GetPistage(ctx context.Context, name string) (*common.Pistage, error) {
 	rs.mutex.Lock()
 	defer rs.mutex.Unlock()
 
@@ -93,29 +94,29 @@ func (rs *RedisStore) GetPhistage(ctx context.Context, name string) (*common.Phi
 		return nil, err
 	}
 
-	key := makeKey(rs.root, "phistage", sha1OfName, "meta:records")
+	key := makeKey(rs.root, "pistage", sha1OfName, "meta:records")
 	keys, err := rs.client.ZRevRangeByScore(ctx, key, &redis.ZRangeBy{Min: "-inf", Max: "+inf", Offset: 0, Count: 1}).Result()
 	if err != nil {
 		return nil, err
 	}
 	if len(keys) != 1 {
-		return nil, errors.New("phistage not found")
+		return nil, errors.New("pistage not found")
 	}
 
-	contentKey := makeKey(rs.root, "phistage", sha1OfName, "meta", keys[0])
+	contentKey := makeKey(rs.root, "pistage", sha1OfName, "meta", keys[0])
 	content, err := rs.client.Get(ctx, contentKey).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	p := &common.Phistage{}
+	p := &common.Pistage{}
 	if err := json.Unmarshal([]byte(content), p); err != nil {
 		return nil, err
 	}
 	return p, nil
 }
 
-func (rs *RedisStore) DeletePhistage(ctx context.Context, name string) error {
+func (rs *RedisStore) DeletePistage(ctx context.Context, name string) error {
 	rs.mutex.Lock()
 	defer rs.mutex.Unlock()
 
@@ -124,7 +125,7 @@ func (rs *RedisStore) DeletePhistage(ctx context.Context, name string) error {
 		return err
 	}
 
-	pattern := makeKey(rs.root, "phistage", sha1OfName, "*")
+	pattern := makeKey(rs.root, "pistage", sha1OfName, "*")
 	keys, err := rs.client.Keys(ctx, pattern).Result()
 	if err != nil {
 		return err
@@ -134,7 +135,7 @@ func (rs *RedisStore) DeletePhistage(ctx context.Context, name string) error {
 }
 
 // string ${root}:run:${run id}:run
-// sorted set ${root}:phistage:${sha1 of phistage name}:run:records, score: timestamp, member: run id
+// sorted set ${root}:pistage:${sha1 of pistage name}:run:records, score: timestamp, member: run id
 func (rs *RedisStore) CreateRun(ctx context.Context, run *common.Run) error {
 	rs.mutex.Lock()
 	defer rs.mutex.Unlock()
@@ -155,14 +156,14 @@ func (rs *RedisStore) CreateRun(ctx context.Context, run *common.Run) error {
 		return nil
 	}
 
-	// phistage run
-	sha1OfPhistageName, err := helpers.Sha1HexDigest(run.Phistage)
+	// pistage run
+	sha1OfPistageName, err := helpers.Sha1HexDigest(run.Pistage)
 	if err != nil {
 		return err
 	}
 
-	phistageRunRecordsKey := makeKey(rs.root, "phistage", sha1OfPhistageName, "run:records")
-	_, err = rs.client.ZAdd(ctx, phistageRunRecordsKey, &redis.Z{Score: currentTimestamp(), Member: run.ID}).Result()
+	pistageRunRecordsKey := makeKey(rs.root, "pistage", sha1OfPistageName, "run:records")
+	_, err = rs.client.ZAdd(ctx, pistageRunRecordsKey, &redis.Z{Score: currentTimestamp(), Member: run.ID}).Result()
 	return err
 }
 
@@ -197,8 +198,8 @@ func (rs *RedisStore) UpdateRun(ctx context.Context, run *common.Run) error {
 	return err
 }
 
-// sorted set ${root}:phistage:${sha1 of phistage name}:run:records, score: timestamp, member: run id
-func (rs *RedisStore) GetRunsByPhistage(ctx context.Context, name string) ([]*common.Run, error) {
+// sorted set ${root}:pistage:${sha1 of pistage name}:run:records, score: timestamp, member: run id
+func (rs *RedisStore) GetRunsByPistage(ctx context.Context, name string) ([]*common.Run, error) {
 	rs.mutex.Lock()
 	defer rs.mutex.Unlock()
 
@@ -207,7 +208,7 @@ func (rs *RedisStore) GetRunsByPhistage(ctx context.Context, name string) ([]*co
 		return nil, err
 	}
 
-	key := makeKey(rs.root, "phistage", sha1OfName, "run:records")
+	key := makeKey(rs.root, "pistage", sha1OfName, "run:records")
 	ids, err := rs.client.ZRevRangeByScore(ctx, key, &redis.ZRangeBy{Min: "-inf", Max: "+inf"}).Result()
 	if err != nil {
 		return nil, err
@@ -420,8 +421,8 @@ func (rs *RedisStore) GetRegisteredStep(ctx context.Context, name string) (*comm
 	return step, nil
 }
 
-// string ${root}:phistage:${sha1 of phistage name}:vars
-func (rs *RedisStore) SetVariablesForPhistage(ctx context.Context, name string, vars map[string]string) error {
+// string ${root}:pistage:${sha1 of pistage name}:vars
+func (rs *RedisStore) SetVariablesForPistage(ctx context.Context, name string, vars map[string]string) error {
 	rs.mutex.Lock()
 	defer rs.mutex.Unlock()
 
@@ -435,7 +436,7 @@ func (rs *RedisStore) SetVariablesForPhistage(ctx context.Context, name string, 
 		return err
 	}
 
-	key := makeKey(rs.root, "phistage", sha1OfName, "vars")
+	key := makeKey(rs.root, "pistage", sha1OfName, "vars")
 	_, err = rs.client.Set(ctx, key, content, 0).Result()
 	return err
 }
@@ -444,8 +445,8 @@ func isRedisNoKeyError(e error) bool {
 	return strings.Contains(e.Error(), "redis:nil")
 }
 
-// string ${root}:phistage:${sha1 of phistage name}:vars
-func (rs *RedisStore) GetVariablesForPhistage(ctx context.Context, name string) (map[string]string, error) {
+// string ${root}:pistage:${sha1 of pistage name}:vars
+func (rs *RedisStore) GetVariablesForPistage(ctx context.Context, name string) (map[string]string, error) {
 	rs.mutex.Lock()
 	defer rs.mutex.Unlock()
 
@@ -454,7 +455,7 @@ func (rs *RedisStore) GetVariablesForPhistage(ctx context.Context, name string) 
 		return nil, err
 	}
 
-	key := makeKey(rs.root, "phistage", sha1OfName, "vars")
+	key := makeKey(rs.root, "pistage", sha1OfName, "vars")
 	content, err := rs.client.Get(ctx, key).Result()
 	if err != nil {
 		if isRedisNoKeyError(err) {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/projecteru2/phistage/apiserver/grpc/proto"
+	"github.com/projecteru2/pistage/apiserver/grpc/proto"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -13,12 +13,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var errorNoPhistageSpecified = errors.New("need to specify Phistage name")
+var errorNoPistageSpecified = errors.New("need to specify Pistage name")
 
 func setVariables(c *cli.Context) error {
 	name := c.Args().First()
 	if name == "" {
-		return errorNoPhistageSpecified
+		return errorNoPistageSpecified
 	}
 
 	content, err := ioutil.ReadFile(c.String("file"))
@@ -53,7 +53,7 @@ func setVariables(c *cli.Context) error {
 func getVariables(c *cli.Context) error {
 	name := c.Args().First()
 	if name == "" {
-		return errorNoPhistageSpecified
+		return errorNoPistageSpecified
 	}
 
 	client, err := newClient(c)
@@ -80,18 +80,18 @@ func getVariables(c *cli.Context) error {
 func VariablesCommands() *cli.Command {
 	return &cli.Command{
 		Name:  "vars",
-		Usage: "Control variables of a phistage",
+		Usage: "Control variables of a pistage",
 		Subcommands: []*cli.Command{
 			{
 				Name:  "get",
-				Usage: "Get variables of a phistage",
+				Usage: "Get variables of a pistage",
 				Action: func(c *cli.Context) error {
 					return getVariables(c)
 				},
 			},
 			{
 				Name:  "set",
-				Usage: "Set variables of a phistage",
+				Usage: "Set variables of a pistage",
 				Action: func(c *cli.Context) error {
 					return setVariables(c)
 				},

@@ -13,7 +13,7 @@ import (
 var (
 	// ErrorJobHasNoName is returned when the job has no name.
 	// This is only returned when directly loading a job from yaml specification.
-	// When loading from a phistage, this won't be returned since jobs in phistage
+	// When loading from a pistage, this won't be returned since jobs in pistage
 	// is a map, the names are the keys.
 	ErrorJobHasNoName = errors.New("Job has no name")
 
@@ -85,15 +85,15 @@ var (
 )
 
 type Run struct {
-	ID       string    `json:"id"`
-	Phistage string    `json:"phistage"`
-	Start    time.Time `json:"start"`
-	End      time.Time `json:"end"`
+	ID      string    `json:"id"`
+	Pistage string    `json:"pistage"`
+	Start   time.Time `json:"start"`
+	End     time.Time `json:"end"`
 }
 
 type JobRun struct {
 	ID        string             `json:"id"`
-	Phistage  string             `json:"phistage"`
+	Pistage   string             `json:"pistage"`
 	Job       string             `json:"job"`
 	Status    JobRunStatus       `json:"status"`
 	Start     time.Time          `json:"start"`

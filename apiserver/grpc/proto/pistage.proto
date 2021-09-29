@@ -2,19 +2,19 @@ syntax = "proto3";
 package proto;
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/projecteru2/phistage/apiserver/grpc/proto";
+option go_package = "github.com/projecteru2/pistage/apiserver/grpc/proto";
 
-service Phistage {
+service Pistage {
   rpc SetVariables(SetVariablesRequest) returns (SetVariablesReply) {};
   rpc GetVariables(GetVariablesRequest) returns (GetVariablesReply) {};
 
-  rpc ApplyOneway(ApplyPhistageRequest) returns (ApplyPhistageOnewayReply) {};
-  rpc ApplyStream(ApplyPhistageRequest) returns (stream ApplyPhistageStreamReply) {};
-  rpc GetPhistage(GetPhistageRequest) returns (GetPhistageReply) {};
-  rpc DeletePhistage(DeletePhistageRequest) returns (DeletePhistageReply) {};
+  rpc ApplyOneway(ApplyPistageRequest) returns (ApplyPistageOnewayReply) {};
+  rpc ApplyStream(ApplyPistageRequest) returns (stream ApplyPistageStreamReply) {};
+  rpc GetPistage(GetPistageRequest) returns (GetPistageReply) {};
+  rpc DeletePistage(DeletePistageRequest) returns (DeletePistageReply) {};
 
-  rpc GetRunsByPhistage(GetRunsByPhistageRequest) returns (GetRunsByPhistageReply) {};
-  rpc GetJobRunsByPhistage(GetJobRunsByPhistageRequest) returns (GetJobRunsByPhistageReply) {};
+  rpc GetRunsByPistage(GetRunsByPistageRequest) returns (GetRunsByPistageReply) {};
+  rpc GetJobRunsByPistage(GetJobRunsByPistageRequest) returns (GetJobRunsByPistageReply) {};
 
   rpc RegisterJob(RegisterJobRequest) returns (RegisterJobReply) {};
   rpc RegisterStep(RegisterStepRequest) returns (RegisterStepReply) {};
@@ -39,58 +39,58 @@ message GetVariablesReply {
   map<string, string> variables = 2;
 }
 
-message ApplyPhistageRequest {
+message ApplyPistageRequest {
   string content = 1;
 }
 
-message ApplyPhistageOnewayReply {
+message ApplyPistageOnewayReply {
   string name = 1;
   bool success = 2;
 }
 
-message ApplyPhistageStreamReply {
+message ApplyPistageStreamReply {
   string name = 1;
   int64 logtype = 2;
   string log = 3;
 }
 
-message GetPhistageRequest {
+message GetPistageRequest {
   string name = 1;
 }
 
-message GetPhistageReply {
+message GetPistageReply {
   string name = 1;
   string content = 2;
 }
 
-message DeletePhistageRequest {
+message DeletePistageRequest {
   string name = 1;
 }
 
-message DeletePhistageReply {
+message DeletePistageReply {
   string name = 1;
   bool success = 2;
 }
 
-message GetRunsByPhistageRequest {
+message GetRunsByPistageRequest {
   string name = 1;
   int64 offset = 2;
   int64 limit = 3;
 }
 
-message GetRunsByPhistageReply {
+message GetRunsByPistageReply {
   string name = 1;
   repeated Run runs = 2;
 }
 
-message GetJobRunsByPhistageRequest {
+message GetJobRunsByPistageRequest {
   string name = 1;
   string runID = 2;
   int64 offset = 3;
   int64 limit = 4;
 }
 
-message GetJobRunsByPhistageReply {
+message GetJobRunsByPistageReply {
   string name = 1;
   string runID = 2;
   repeated JobRun jobRuns = 3;
@@ -116,14 +116,14 @@ message RegisterStepReply {
 
 message Run {
   string id = 1;
-  string phistage = 2;
+  string Pistage = 2;
   google.protobuf.Timestamp start = 3;
   google.protobuf.Timestamp end = 4;
 }
 
 message JobRun {
   string id = 1;
-  string phistage = 2;
+  string Pistage = 2;
   string job = 3;
   string status = 4;
   google.protobuf.Timestamp start = 5;

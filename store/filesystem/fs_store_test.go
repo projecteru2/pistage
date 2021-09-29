@@ -6,13 +6,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/projecteru2/phistage/common"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/projecteru2/pistage/common"
 )
 
-func TestFileSystemStorePhistage(t *testing.T) {
+func TestFileSystemStorePistage(t *testing.T) {
 	assert := assert.New(t)
-	rootfs, err := ioutil.TempDir("", "phistagetest-*")
+	rootfs, err := ioutil.TempDir("", "pistagetest-*")
 	assert.NoError(err)
 	defer os.RemoveAll(rootfs)
 
@@ -24,32 +25,32 @@ func TestFileSystemStorePhistage(t *testing.T) {
 	p1, err := common.FromSpec(content)
 	assert.NoError(err)
 
-	assert.NoError(fs.CreatePhistage(context.TODO(), p1))
+	assert.NoError(fs.CreatePistage(context.TODO(), p1))
 
-	p2, err := fs.GetPhistage(context.TODO(), p1.Name)
+	p2, err := fs.GetPistage(context.TODO(), p1.Name)
 	assert.NoError(err)
 	assert.Equal(p2.Name, p1.Name)
 	assert.Equal(len(p2.Jobs), len(p1.Jobs))
 	assert.Equal(len(p2.Environment), len(p1.Environment))
 	assert.Equal(p2.Executor, p1.Executor)
 
-	assert.NoError(fs.CreatePhistage(context.TODO(), p2))
-	p3, err := fs.GetPhistage(context.TODO(), p1.Name)
+	assert.NoError(fs.CreatePistage(context.TODO(), p2))
+	p3, err := fs.GetPistage(context.TODO(), p1.Name)
 	assert.NoError(err)
 	assert.Equal(p3.Name, p1.Name)
 	assert.Equal(len(p3.Jobs), len(p1.Jobs))
 	assert.Equal(len(p3.Environment), len(p1.Environment))
 	assert.Equal(p3.Executor, p1.Executor)
 
-	assert.NoError(fs.DeletePhistage(context.TODO(), p1.Name))
-	p4, err := fs.GetPhistage(context.TODO(), p1.Name)
+	assert.NoError(fs.DeletePistage(context.TODO(), p1.Name))
+	p4, err := fs.GetPistage(context.TODO(), p1.Name)
 	assert.Error(err)
 	assert.Nil(p4)
 }
 
 func TestFileSystemRegister(t *testing.T) {
 	assert := assert.New(t)
-	rootfs, err := ioutil.TempDir("", "phistagetest-*")
+	rootfs, err := ioutil.TempDir("", "pistagetest-*")
 	assert.NoError(err)
 	defer os.RemoveAll(rootfs)
 

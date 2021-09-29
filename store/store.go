@@ -3,21 +3,21 @@ package store
 import (
 	"context"
 
-	"github.com/projecteru2/phistage/common"
+	"github.com/projecteru2/pistage/common"
 )
 
 // Store is the interface for storage.
 type Store interface {
-	// Phistage
-	CreatePhistage(ctx context.Context, phistage *common.Phistage) error
-	GetPhistage(ctx context.Context, name string) (*common.Phistage, error)
-	DeletePhistage(ctx context.Context, name string) error
+	// Pistage
+	CreatePistage(ctx context.Context, pistage *common.Pistage) error
+	GetPistage(ctx context.Context, name string) (*common.Pistage, error)
+	DeletePistage(ctx context.Context, name string) error
 
 	// Run
 	CreateRun(ctx context.Context, run *common.Run) error
 	GetRun(ctx context.Context, id string) (*common.Run, error)
 	UpdateRun(ctx context.Context, run *common.Run) error
-	GetRunsByPhistage(ctx context.Context, name string) ([]*common.Run, error)
+	GetRunsByPistage(ctx context.Context, name string) ([]*common.Run, error)
 
 	// JobRun
 	CreateJobRun(ctx context.Context, run *common.Run, jobRun *common.JobRun) error
@@ -35,6 +35,6 @@ type Store interface {
 	GetRegisteredKhoriumStep(ctx context.Context, name string) (*common.KhoriumStep, error)
 
 	// Variables
-	SetVariablesForPhistage(ctx context.Context, name string, vars map[string]string) error
-	GetVariablesForPhistage(ctx context.Context, name string) (map[string]string, error)
+	SetVariablesForPistage(ctx context.Context, name string, vars map[string]string) error
+	GetVariablesForPistage(ctx context.Context, name string) (map[string]string, error)
 }

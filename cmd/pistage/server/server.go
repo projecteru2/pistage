@@ -3,17 +3,17 @@ package server
 import (
 	"net"
 
-	"github.com/projecteru2/phistage/apiserver/grpc"
-	"github.com/projecteru2/phistage/cmd/phistage/helpers"
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/stageserver"
+	"github.com/projecteru2/pistage/apiserver/grpc"
+	"github.com/projecteru2/pistage/cmd/pistage/helpers"
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/stageserver"
 
 	"github.com/sethvargo/go-signalcontext"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
 
-func StartPhistage(c *cli.Context) error {
+func StartPistage(c *cli.Context) error {
 	if err := helpers.SetupLog(c.String("log-level")); err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func StartPhistage(c *cli.Context) error {
 		return err
 	}
 
-	l, err := net.Listen("tcp", ":9736")
+	l, err := net.Listen("tcp", config.Bind)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func StartPhistage(c *cli.Context) error {
 	ctx, cancel := signalcontext.OnInterrupt()
 	defer cancel()
 
-	s := stageserver.NewStager(config, store)
+	s := stageserver.NewStageServer(config, store)
 	s.Start()
 	logrus.Info("[Stager] started")
 

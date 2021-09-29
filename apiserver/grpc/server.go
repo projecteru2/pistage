@@ -6,16 +6,18 @@ import (
 	"io"
 	"net"
 
-	"github.com/projecteru2/phistage/apiserver/grpc/proto"
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/stageserver"
-	"github.com/projecteru2/phistage/store"
+	"github.com/projecteru2/pistage/apiserver/grpc/proto"
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/stageserver"
+	"github.com/projecteru2/pistage/store"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
 type GRPCServer struct {
+	proto.UnimplementedPistageServer
+
 	store  store.Store
 	stager *stageserver.StageServer
 
@@ -31,7 +33,7 @@ func NewGRPCServer(store store.Store, stager *stageserver.StageServer) *GRPCServ
 
 func (g *GRPCServer) Serve(ctx context.Context, l net.Listener, opts ...grpc.ServerOption) {
 	g.server = grpc.NewServer(opts...)
-	proto.RegisterPhistageServer(g.server, g)
+	proto.RegisterPistageServer(g.server, g)
 
 	if err := g.server.Serve(l); err != nil {
 		logrus.WithError(err).Error("[GRPCServer] serve error")
@@ -49,7 +51,7 @@ func (g *GRPCServer) Stop() {
 }
 
 func (g *GRPCServer) SetVariables(ctx context.Context, req *proto.SetVariablesRequest) (*proto.SetVariablesReply, error) {
-	err := g.store.SetVariablesForPhistage(ctx, req.GetName(), req.GetVariables())
+	err := g.store.SetVariablesForPistage(ctx, req.GetName(), req.GetVariables())
 	return &proto.SetVariablesReply{
 		Name:    req.GetName(),
 		Success: err == nil,
@@ -57,7 +59,7 @@ func (g *GRPCServer) SetVariables(ctx context.Context, req *proto.SetVariablesRe
 }
 
 func (g *GRPCServer) GetVariables(ctx context.Context, req *proto.GetVariablesRequest) (*proto.GetVariablesReply, error) {
-	vars, err := g.store.GetVariablesForPhistage(ctx, req.GetName())
+	vars, err := g.store.GetVariablesForPistage(ctx, req.GetName())
 	if err != nil {
 		return nil, err
 	}
@@ -67,71 +69,71 @@ func (g *GRPCServer) GetVariables(ctx context.Context, req *proto.GetVariablesRe
 	}, nil
 }
 
-func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPhistageRequest) (*proto.ApplyPhistageOnewayReply, error) {
-	phistage, err := common.FromSpec([]byte(req.GetContent()))
+func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageRequest) (*proto.ApplyPistageOnewayReply, error) {
+	pistage, err := common.FromSpec([]byte(req.GetContent()))
 	if err != nil {
 		return nil, err
 	}
 
 	// Discard the output
-	g.stager.Add(&common.PhistageTask{Phistage: phistage, Output: common.ClosableDiscard})
-	return &proto.ApplyPhistageOnewayReply{
-		Name:    phistage.Name,
+	g.stager.Add(&common.PistageTask{Pistage: pistage, Output: common.ClosableDiscard})
+	return &proto.ApplyPistageOnewayReply{
+		Name:    pistage.Name,
 		Success: err == nil,
 	}, err
 }
 
-func (g *GRPCServer) ApplyStream(req *proto.ApplyPhistageRequest, stream proto.Phistage_ApplyStreamServer) error {
-	phistage, err := common.FromSpec([]byte(req.GetContent()))
+func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pistage_ApplyStreamServer) error {
+	pistage, err := common.FromSpec([]byte(req.GetContent()))
 	if err != nil {
 		return err
 	}
 
-	// We use a pipe here to retrieve the logs across all jobs within this phistage.
+	// We use a pipe here to retrieve the logs across all jobs within this pistage.
 	// Use common.DonCloseWriter to avoid writing end of the pipe being closed by LogTracer.
-	// It's a little bit tricky here...
+	// It's a bit tricky here...
 	r, w := io.Pipe()
-	g.stager.Add(&common.PhistageTask{Phistage: phistage, Output: common.DonCloseWriter{Writer: w}})
+	g.stager.Add(&common.PistageTask{Pistage: pistage, Output: common.DonCloseWriter{Writer: w}})
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		if err := stream.Send(&proto.ApplyPhistageStreamReply{
-			Name: phistage.Name,
+		if err := stream.Send(&proto.ApplyPistageStreamReply{
+			Name: pistage.Name,
 			Log:  scanner.Text(),
 		}); err != nil {
-			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPhistageStreamReply")
+			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPistageStreamReply")
 		}
 	}
 	return nil
 }
 
-func (g *GRPCServer) GetPhistage(ctx context.Context, req *proto.GetPhistageRequest) (*proto.GetPhistageReply, error) {
-	phistage, err := g.store.GetPhistage(ctx, req.GetName())
+func (g *GRPCServer) GetPistage(ctx context.Context, req *proto.GetPistageRequest) (*proto.GetPistageReply, error) {
+	pistage, err := g.store.GetPistage(ctx, req.GetName())
 	if err != nil {
 		return nil, err
 	}
 
-	content, err := common.MarshalPhistage(phistage)
+	content, err := common.MarshalPistage(pistage)
 	if err != nil {
 		return nil, err
 	}
 
-	return &proto.GetPhistageReply{
-		Name:    phistage.Name,
+	return &proto.GetPistageReply{
+		Name:    pistage.Name,
 		Content: string(content),
 	}, nil
 }
 
-func (g *GRPCServer) DeletePhistage(ctx context.Context, req *proto.DeletePhistageRequest) (*proto.DeletePhistageReply, error) {
-	err := g.store.DeletePhistage(ctx, req.GetName())
-	return &proto.DeletePhistageReply{
+func (g *GRPCServer) DeletePistage(ctx context.Context, req *proto.DeletePistageRequest) (*proto.DeletePistageReply, error) {
+	err := g.store.DeletePistage(ctx, req.GetName())
+	return &proto.DeletePistageReply{
 		Name:    req.GetName(),
 		Success: err == nil,
 	}, err
 }
 
-func (g *GRPCServer) GetRunsByPhistage(ctx context.Context, req *proto.GetRunsByPhistageRequest) (*proto.GetRunsByPhistageReply, error) {
-	runs, err := g.store.GetRunsByPhistage(ctx, req.GetName())
+func (g *GRPCServer) GetRunsByPistage(ctx context.Context, req *proto.GetRunsByPistageRequest) (*proto.GetRunsByPistageReply, error) {
+	runs, err := g.store.GetRunsByPistage(ctx, req.GetName())
 	if err != nil {
 		return nil, err
 	}
@@ -140,13 +142,13 @@ func (g *GRPCServer) GetRunsByPhistage(ctx context.Context, req *proto.GetRunsBy
 	for _, run := range runs {
 		pbRuns = append(pbRuns, toGRPCRun(run))
 	}
-	return &proto.GetRunsByPhistageReply{
+	return &proto.GetRunsByPistageReply{
 		Name: req.GetName(),
 		Runs: pbRuns,
 	}, nil
 }
 
-func (g *GRPCServer) GetJobRunsByPhistage(ctx context.Context, req *proto.GetJobRunsByPhistageRequest) (*proto.GetJobRunsByPhistageReply, error) {
+func (g *GRPCServer) GetJobRunsByPistage(ctx context.Context, req *proto.GetJobRunsByPistageRequest) (*proto.GetJobRunsByPistageReply, error) {
 	jobRuns, err := g.store.GetJobRuns(ctx, req.GetRunID())
 	if err != nil {
 		return nil, err
@@ -156,7 +158,7 @@ func (g *GRPCServer) GetJobRunsByPhistage(ctx context.Context, req *proto.GetJob
 	for _, jobRun := range jobRuns {
 		pbJobRuns = append(pbJobRuns, toGRPCJobRun(jobRun))
 	}
-	return &proto.GetJobRunsByPhistageReply{
+	return &proto.GetJobRunsByPistageReply{
 		Name:    req.GetName(),
 		RunID:   req.GetRunID(),
 		JobRuns: pbJobRuns,

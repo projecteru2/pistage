@@ -4,9 +4,9 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/projecteru2/phistage/common"
-	"github.com/projecteru2/phistage/executors"
-	"github.com/projecteru2/phistage/store"
+	"github.com/projecteru2/pistage/common"
+	"github.com/projecteru2/pistage/executors"
+	"github.com/projecteru2/pistage/store"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -27,7 +27,7 @@ func (s *SSHJobExecutorProvider) GetName() string {
 	return "ssh"
 }
 
-func (s *SSHJobExecutorProvider) GetJobExecutor(job *common.Job, phistage *common.Phistage, output io.Writer) (executors.JobExecutor, error) {
+func (s *SSHJobExecutorProvider) GetJobExecutor(job *common.Job, pistage *common.Pistage, output io.Writer) (executors.JobExecutor, error) {
 	key, err := ioutil.ReadFile(s.config.SSH.PrivateKey)
 	if err != nil {
 		return nil, err
@@ -48,5 +48,5 @@ func (s *SSHJobExecutorProvider) GetJobExecutor(job *common.Job, phistage *commo
 	if err != nil {
 		return nil, err
 	}
-	return NewSSHJobExecutor(job, phistage, output, client, s.store, s.config)
+	return NewSSHJobExecutor(job, pistage, output, client, s.store, s.config)
 }

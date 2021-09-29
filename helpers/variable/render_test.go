@@ -10,7 +10,7 @@ func TestReplaceVariables(t *testing.T) {
 	assert := assert.New(t)
 
 	r1 := ReplaceVariables("{{   $env.XXX}} {{$vars.BBB}} {{$xxx.CCC}}")
-	assert.Equal(r1, "{{   __phistage_env__.XXX}} {{__phistage_vars__.BBB}} {{$xxx.CCC}}")
+	assert.Equal(r1, "{{   __pistage_env__.XXX}} {{__pistage_vars__.BBB}} {{$xxx.CCC}}")
 }
 
 func TestBuildTemplateContext(t *testing.T) {
@@ -21,6 +21,6 @@ func TestBuildTemplateContext(t *testing.T) {
 	assert.Equal(len(c), 4)
 	assert.Equal(c["a1"].(string), "v1")
 	assert.Equal(c["a2"].(string), "v2")
-	assert.Equal(c[phistageEnvVarName].(map[string]string)["X"], "1")
-	assert.Equal(c[phistageVarsVarName].(map[string]string)["v1"], "c1")
+	assert.Equal(c[pistageEnvVarName].(map[string]string)["X"], "1")
+	assert.Equal(c[pistageVarsVarName].(map[string]string)["v1"], "c1")
 }

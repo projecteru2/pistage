@@ -90,7 +90,7 @@ type DonCloseWriter struct {
 
 // Close tries to close the io.Writer if it's an io.WriteCloser.
 // And by doing this, DonCloseWriter is an io.WriteCloser,
-// which can be used as the log tracer for PhistageTask.
+// which can be used as the log tracer for PistageTask.
 func (dcw DonCloseWriter) Close() error {
 	if closer, ok := dcw.Writer.(io.Closer); ok {
 		return closer.Close()
