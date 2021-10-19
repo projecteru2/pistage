@@ -21,13 +21,14 @@ var (
 )
 
 type Job struct {
-	Name        string            `yaml:"name" json:"name"`
-	Image       string            `yaml:"image" json:"image"`
-	DependsOn   []string          `yaml:"depends_on" json:"depends_on"`
-	Steps       []*Step           `yaml:"steps" json:"steps"`
-	Timeout     int               `yaml:"timeout" json:"timeout"`
-	Environment map[string]string `yaml:"env" json:"env"`
-	Files       []string          `yaml:"files" json:"files"`
+	Name          string            `yaml:"name" json:"name"`
+	Image         string            `yaml:"image" json:"image"`
+	DependsOn     []string          `yaml:"depends_on" json:"depends_on"`
+	Steps         []*Step           `yaml:"steps" json:"steps"`
+	RollBackSteps []*Step          `yaml:"rollback_steps" json:"rollback_steps"`
+	Timeout       int               `yaml:"timeout" json:"timeout"`
+	Environment   map[string]string `yaml:"env" json:"env"`
+	Files         []string          `yaml:"files" json:"files"`
 
 	fileCollector FileCollector `yaml:"-" json:"-"`
 }

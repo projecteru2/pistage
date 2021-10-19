@@ -3,6 +3,7 @@ package stageserver
 import (
 	"context"
 	"io"
+	"sort"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -188,4 +189,78 @@ func (r *PistageRunner) runOneJob(job *common.Job) error {
 	}
 
 	return nil
+}
+
+// todo: rollback function business logic
+func (r *PistageRunner) rollbackWithStream() error {
+	p := r.p
+	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
+
+	if err := p.GenerateHash(); err != nil {
+		logger.WithError(err).Error("[Stager runWithStream] gen hash failed")
+		return err
+	}
+
+	pistageRunModel, err := r.store.GetPistageRunByNamespaceAndFlowIdentifier(p.WorkflowNamespace, p.WorkflowIdentifier)
+	if err != nil {
+		logger.WithError(err).Errorf("[Stager rollback] error when GetPistageRunByNamespaceAndFlowIdentifier")
+		return err
+	}
+	id := pistageRunModel.ID
+
+	jobRuns, err := r.store.GetJobRunsByPistageRunId(id)
+	if err != nil {
+		logger.WithError(err).Errorf("[Stager rollback] error when GetJobRunsByPistageRunId")
+		return err
+	}
+
+	finishedJobRuns := make([]*common.JobRun, len(jobRuns))
+	for i := range jobRuns {
+		if jobRuns[i].Status == common.RunStatusFinished {
+			finishedJobRuns = append(finishedJobRuns, jobRuns[i])
+		}
+	}
+
+	// descending sort by start time, start firstly will roll back finally
+	sort.Slice(finishedJobRuns, func(i, j int) bool {
+		return finishedJobRuns[i].Start > finishedJobRuns[j].Start
+	})
+
+	err = r.rollbackJobs(finishedJobRuns)
+
+	if err != nil {
+		logger.WithError(err).Errorf("[Stager rollback] error when rollbackJobs")
+		return err
+	}
+	return nil
+
+}
+
+func (r *PistageRunner) rollbackJobs(jobRuns []*common.JobRun) error {
+	p := r.p
+	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
+	executorProvider := executors.GetExecutorProvider(p.Executor)
+	if executorProvider == nil {
+		logger.Errorf("[Stager runOneJob] fail to get a provider")
+		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, p.Name())
+	}
+
+	for i := range jobRuns {
+
+		if val, ok := p.Jobs[jobRuns[i].JobName]; ok {
+			executor, err := executorProvider.GetJobExecutor(val, p, common.NewLogTracer(r.run.ID, r.o))
+			if err != nil {
+				logger.WithError(err).Errorf("[Stager runOneJob] fail to get a job executor")
+				continue
+			}
+
+			if err := executor.RollbackOneJob(context.TODO(), jobRuns[i].JobName); err != nil {
+				logger.WithError(err).Errorf("[Stager runOneJob] error when EXECUTE")
+				return err
+			}
+		}
+	}
+
+	return nil
+
 }
