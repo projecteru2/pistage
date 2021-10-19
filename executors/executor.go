@@ -31,6 +31,11 @@ type JobExecutor interface {
 	// Usually it does cleaning work, collects necessary artifacts,
 	// and remove the container / virtual machine runtime.
 	Cleanup(ctx context.Context) error
+
+	Rollback(ctx context.Context) error
+
+	RollbackOneJob(ctx context.Context, jobName string) error
+
 }
 
 // ExecutorProvider is basically the factory of JobExecutor

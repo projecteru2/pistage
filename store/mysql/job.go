@@ -27,11 +27,11 @@ func (JobRunModel) TableName() string {
 func (ms *MySQLStore) CreateJobRun(run *common.Run, jobRun *common.JobRun) error {
 	pistageRunID, _ := strconv.ParseInt(run.ID, 10, 64)
 	jobRunModel := &JobRunModel{
-		WorkflowNamespace: run.WorkflowNamespace,
+		WorkflowNamespace:  run.WorkflowNamespace,
 		WorkflowIdentifier: run.WorkflowIdentifier,
-		PistageRunID: pistageRunID,
-		JobName: jobRun.JobName,
-		RunStatus: string(common.RunStatusPending),
+		PistageRunID:       pistageRunID,
+		JobName:            jobRun.JobName,
+		RunStatus:          string(common.RunStatusPending),
 	}
 	err := ms.db.Create(jobRunModel).Error
 	if err != nil {
@@ -47,13 +47,13 @@ func (ms *MySQLStore) GetJobRun(id string) (run *common.JobRun, err error) {
 		return
 	}
 	run = &common.JobRun{
-		ID: strconv.FormatInt(runModel.ID, 10),
-		WorkflowNamespace: runModel.WorkflowNamespace,
+		ID:                 strconv.FormatInt(runModel.ID, 10),
+		WorkflowNamespace:  runModel.WorkflowNamespace,
 		WorkflowIdentifier: runModel.WorkflowIdentifier,
-		JobName: runModel.JobName,
-		Status: common.RunStatus(runModel.RunStatus),
-		Start: runModel.StartTime,
-		End: runModel.EndTime,
+		JobName:            runModel.JobName,
+		Status:             common.RunStatus(runModel.RunStatus),
+		Start:              runModel.StartTime,
+		End:                runModel.EndTime,
 	}
 	return
 }
@@ -64,4 +64,13 @@ func (ms *MySQLStore) UpdateJobRun(jobRun *common.JobRun) error {
 		"end_time":   jobRun.End,
 		"run_status": string(jobRun.Status),
 	}).Error
+}
+
+func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId int64) (jobRuns []*common.JobRun, err error) {
+	var result []*common.JobRun
+	err = ms.db.First(&result).Where("pistage_run_id = ? ", pistageRunId).Error
+	if err != nil {
+		return
+	}
+	return result, nil
 }

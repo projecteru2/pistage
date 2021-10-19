@@ -1,6 +1,7 @@
 package stageserver
 
 import (
+	"github.com/projecteru2/pistage/apiserver/grpc"
 	"runtime"
 	"sync"
 
@@ -11,11 +12,12 @@ import (
 )
 
 type StageServer struct {
-	config *common.Config
-	stages chan *common.PistageTask
-	stop   chan struct{}
-	store  store.Store
-	wg     sync.WaitGroup
+	config   *common.Config
+	stages   chan *common.PistageTask
+	stop     chan struct{}
+	rollback chan *common.PistageTask
+	store    store.Store
+	wg       sync.WaitGroup
 }
 
 func NewStageServer(config *common.Config, store store.Store) *StageServer {
@@ -61,8 +63,18 @@ func (s *StageServer) runner(id int) {
 			// if err := s.runWithGraph(pt); err != nil {
 			// 	logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
 			// }
-			if err := r.runWithStream(); err != nil {
-				logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
+
+			switch pt.Pistage.JobType {
+			case grpc.Apply:
+				if err := r.runWithStream(); err != nil {
+					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
+				}
+			case grpc.Rollback:
+				if err := r.rollbackWithStream(); err != nil {
+					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when rollback a pistage")
+				}
+			default:
+
 			}
 
 			// We need to close the Output here, indicating the pistage is finished,
@@ -71,6 +83,8 @@ func (s *StageServer) runner(id int) {
 				logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when closing the output writer")
 			}
 			runtime.GC()
+
+
 		}
 	}
 }

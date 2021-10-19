@@ -16,11 +16,13 @@ func main() {
 		fmt.Print(version.Version())
 	}
 
+	// cli function entrance
 	app := &cli.App{
 		Name:    "pistagecli",
 		Version: version.VERSION,
 		Commands: []*cli.Command{
 			commands.ApplyCommands(),
+			commands.Rollback(),
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{

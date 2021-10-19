@@ -24,6 +24,7 @@ type Pistage struct {
 
 	Content     []byte `yaml:"-" json:"-"`
 	ContentHash string `yaml:"-" json:"-"`
+	JobType     string `yaml:"job_type" json:"job_type"`
 }
 
 // init set name to all jobs.

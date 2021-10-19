@@ -77,6 +77,17 @@ func (ms *MySQLStore) CreatePistageRun(pistage *common.Pistage, version string) 
 	return
 }
 
+func (ms *MySQLStore) GetPistageRunByNamespaceAndFlowIdentifier(workflowNamespace string,
+	workflowIdentifier string) (pistageRunModel *PistageRunModel, err error) {
+	err = ms.db.First(&pistageRunModel).Where("workflow_namespace = ? ", workflowNamespace).
+		Where("workflow_identifier = ?", workflowIdentifier).Error
+	if err != nil {
+		return
+	}
+	return
+}
+
+
 func (ms *MySQLStore) GetPistageRun(id string) (run *common.Run, err error) {
 	var pistageRun PistageRunModel
 	err = ms.db.First(&pistageRun, id).Error
@@ -84,12 +95,12 @@ func (ms *MySQLStore) GetPistageRun(id string) (run *common.Run, err error) {
 		return
 	}
 	run = &common.Run{
-		ID: id,
-		WorkflowNamespace: pistageRun.WorkflowNamespace,
+		ID:                 id,
+		WorkflowNamespace:  pistageRun.WorkflowNamespace,
 		WorkflowIdentifier: pistageRun.WorkflowIdentifier,
-		Status: common.RunStatus(pistageRun.RunStatus),
-		Start: pistageRun.StartTime,
-		End: pistageRun.EndTime,
+		Status:             common.RunStatus(pistageRun.RunStatus),
+		Start:              pistageRun.StartTime,
+		End:                pistageRun.EndTime,
 	}
 	return
 }

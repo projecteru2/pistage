@@ -6,6 +6,8 @@ option go_package = "github.com/projecteru2/pistage/apiserver/grpc/proto";
 service Pistage {
   rpc ApplyOneway(ApplyPistageRequest) returns (ApplyPistageOnewayReply) {};
   rpc ApplyStream(ApplyPistageRequest) returns (stream ApplyPistageStreamReply) {};
+  rpc RollbackOneway(ApplyPistageRequest) returns (ApplyRollbackReply) {};
+  rpc RollbackStream(ApplyPistageRequest) returns (stream ApplyPistageStreamReply) {};
 }
 
 message ApplyPistageRequest {
@@ -21,4 +23,8 @@ message ApplyPistageStreamReply {
   string name = 1;
   int64 logtype = 2;
   string log = 3;
+}
+
+message ApplyRollbackReply {
+  bool success = 1;
 }

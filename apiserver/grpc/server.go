@@ -24,6 +24,11 @@ type GRPCServer struct {
 	server *grpc.Server
 }
 
+const (
+	Apply    = "apply"
+	Rollback = "rollback"
+)
+
 func NewGRPCServer(store store.Store, stager *stageserver.StageServer) *GRPCServer {
 	return &GRPCServer{
 		store:  store,
@@ -56,6 +61,8 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 		return nil, err
 	}
 
+	pistage.JobType = Apply
+
 	// Discard the output
 	g.stager.Add(&common.PistageTask{Pistage: pistage, Output: common.ClosableDiscard})
 	return &proto.ApplyPistageOnewayReply{
@@ -86,4 +93,29 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pi
 		}
 	}
 	return nil
+}
+
+func (g *GRPCServer) RollbackStream(req *proto.ApplyPistageRequest, stream proto.Pistage_RollbackStreamServer) error {
+	pistage, err := common.FromSpec([]byte(req.GetContent()))
+	if err != nil {
+		return err
+	}
+	pistage.JobType = Rollback
+
+	// generate output
+	r, w := io.Pipe()
+	g.stager.Add(&common.PistageTask{Pistage: pistage, Output: common.DonCloseWriter{Writer: w}})
+
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		if err := stream.Send(&proto.ApplyPistageStreamReply{
+			Name: pistage.Name(),
+			Log:  scanner.Text(),
+		}); err != nil {
+			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPistageStreamReply")
+		}
+	}
+	return nil
+
 }
