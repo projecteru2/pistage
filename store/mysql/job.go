@@ -1,6 +1,8 @@
 package mysql
 
 import (
+	"errors"
+	"gorm.io/gorm"
 	"strconv"
 
 	"github.com/projecteru2/pistage/common"
@@ -69,8 +71,8 @@ func (ms *MySQLStore) UpdateJobRun(jobRun *common.JobRun) error {
 func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId int64) (jobRuns []*common.JobRun, err error) {
 	var result []*common.JobRun
 	err = ms.db.First(&result).Where("pistage_run_id = ? ", pistageRunId).Error
-	if err != nil {
-		return
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
 	}
 	return result, nil
 }
