@@ -61,8 +61,6 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 		return nil, err
 	}
 
-	pistage.JobType = Apply
-
 	// Discard the output
 	g.stager.Add(&common.PistageTask{Pistage: pistage, Output: common.ClosableDiscard})
 	return &proto.ApplyPistageOnewayReply{
