@@ -1,7 +1,6 @@
 package stageserver
 
 import (
-	"github.com/projecteru2/pistage/apiserver/grpc"
 	"runtime"
 	"sync"
 
@@ -65,11 +64,11 @@ func (s *StageServer) runner(id int) {
 			// }
 
 			switch pt.Pistage.JobType {
-			case grpc.Apply:
+			case common.Apply:
 				if err := r.runWithStream(); err != nil {
 					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
 				}
-			case grpc.Rollback:
+			case common.Rollback:
 				if err := r.rollbackWithStream(); err != nil {
 					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when rollback a pistage")
 				}

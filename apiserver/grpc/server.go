@@ -24,10 +24,6 @@ type GRPCServer struct {
 	server *grpc.Server
 }
 
-const (
-	Apply    = "apply"
-	Rollback = "rollback"
-)
 
 func NewGRPCServer(store store.Store, stager *stageserver.StageServer) *GRPCServer {
 	return &GRPCServer{
@@ -60,7 +56,7 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 	if err != nil {
 		return nil, err
 	}
-
+	pistage.JobType = common.Apply
 	// Discard the output
 	g.stager.Add(&common.PistageTask{Pistage: pistage, Output: common.ClosableDiscard})
 	return &proto.ApplyPistageOnewayReply{
@@ -74,7 +70,7 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pi
 	if err != nil {
 		return err
 	}
-
+	pistage.JobType = common.Apply
 	// We use a pipe here to retrieve the logs across all jobs within this pistage.
 	// Use common.DonCloseWriter to avoid writing end of the pipe being closed by LogTracer.
 	// It's a bit tricky here...
@@ -98,7 +94,7 @@ func (g *GRPCServer) RollbackStream(req *proto.ApplyPistageRequest, stream proto
 	if err != nil {
 		return err
 	}
-	pistage.JobType = Rollback
+	pistage.JobType = common.Rollback
 
 	// generate output
 	r, w := io.Pipe()

@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"github.com/projecteru2/pistage/store"
 	"sync"
 
 	"github.com/bwmarrin/snowflake"
@@ -9,7 +10,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/projecteru2/pistage/common"
-	"github.com/projecteru2/pistage/store"
 )
 
 type MySQLStore struct {
