@@ -2,6 +2,7 @@ package eru
 
 import (
 	"context"
+	"fmt"
 )
 
 // Rollback will rollback all steps which are defined in rollback_steps
@@ -27,7 +28,9 @@ func (e *EruJobExecutor) Rollback(ctx context.Context) error {
 
 
 func (e *EruJobExecutor) RollbackOneJob(ctx context.Context, jobName string) error {
+	fmt.Println("jobName is " + jobName)
 	for _, step := range e.job.RollBackSteps {
+		fmt.Println("step.Name is " + step.Name)
 		if step.Name != jobName {
 			continue
 		}

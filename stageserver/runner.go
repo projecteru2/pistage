@@ -256,11 +256,13 @@ func (r *PistageRunner) rollbackJobs(jobRuns []common.JobRun, pistageRunId strin
 			fmt.Println("val is ", val)
 			fmt.Println(r.o)
 			executor, err := executorProvider.GetJobExecutor(val, p, common.NewLogTracer(pistageRunId, r.o))
+			fmt.Println("start to rollback 259")
 			if err != nil {
 				logger.WithError(err).Errorf("[Stager rollback] fail to get a job executor")
 				continue
 			}
 
+			fmt.Println("start to rollback 265")
 			if err := executor.RollbackOneJob(context.TODO(), jobRuns[i].JobName); err != nil {
 				logger.WithError(err).Errorf("[Stager rollback] error when EXECUTE")
 				return err
