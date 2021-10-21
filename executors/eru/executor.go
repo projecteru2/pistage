@@ -289,6 +289,7 @@ func (e *EruJobExecutor) executeCommands(ctx context.Context, cmds []string, arg
 	}
 
 	shell, err := command.RenderShell(commands)
+	fmt.Println("shell is ", shell)
 	if err != nil {
 		return err
 	}

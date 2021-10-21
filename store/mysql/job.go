@@ -69,7 +69,7 @@ func (ms *MySQLStore) UpdateJobRun(jobRun *common.JobRun) error {
 	}).Error
 }
 
-func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []common.JobRun, err error) {
+func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []*common.JobRun, err error) {
 	var runModels []JobRunModel
 	// var runModels []*JobRunModel
 	fmt.Println("runModels 74")
@@ -77,9 +77,9 @@ func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []c
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	result := make([]common.JobRun, len(runModels))
+	result := make([]*common.JobRun, len(runModels))
 	for _, runModel := range runModels {
-		jobRun := common.JobRun{
+		jobRun := &common.JobRun{
 			ID:                 strconv.FormatInt(runModel.ID, 10),
 			WorkflowNamespace:  runModel.WorkflowNamespace,
 			WorkflowIdentifier: runModel.WorkflowIdentifier,

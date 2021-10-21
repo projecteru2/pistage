@@ -22,7 +22,7 @@ type Store interface {
 	CreateJobRun(run *common.Run, jobRun *common.JobRun) error
 	GetJobRun(id string) (*common.JobRun, error)
 	UpdateJobRun(jobRun *common.JobRun) error
-	GetJobRunsByPistageRunId(id string) ([]common.JobRun, error)
+	GetJobRunsByPistageRunId(id string) ([]*common.JobRun, error)
 
 	// Register
 	GetRegisteredKhoriumStep(ctx context.Context, name string) (*common.KhoriumStep, error)

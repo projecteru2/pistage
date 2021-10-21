@@ -217,7 +217,7 @@ func (r *PistageRunner) rollbackWithStream() error {
 		return err
 	}
 
-	finishedJobRuns := make([]common.JobRun, len(jobRuns))
+	finishedJobRuns := make([]*common.JobRun, len(jobRuns))
 	for i := range jobRuns {
 		if jobRuns[i].Status == common.RunStatusFinished {
 			finishedJobRuns = append(finishedJobRuns, jobRuns[i])
@@ -240,7 +240,7 @@ func (r *PistageRunner) rollbackWithStream() error {
 
 }
 
-func (r *PistageRunner) rollbackJobs(jobRuns []common.JobRun, pistageRunId string) error {
+func (r *PistageRunner) rollbackJobs(jobRuns []*common.JobRun, pistageRunId string) error {
 	p := r.p
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
 	executorProvider := executors.GetExecutorProvider(p.Executor)
