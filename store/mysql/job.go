@@ -68,10 +68,10 @@ func (ms *MySQLStore) UpdateJobRun(jobRun *common.JobRun) error {
 	}).Error
 }
 
-func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []*common.JobRun, err error) {
-	var result []*common.JobRun
-	err = ms.db.Find(&result).Where("pistage_run_id = ? ", pistageRunId).Error
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []common.JobRun, err error) {
+	var result []common.JobRun
+	err = ms.db.Debug().Find(&result).Where("pistage_run_id = ? ", pistageRunId).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	return result, nil
