@@ -84,7 +84,7 @@ func (ms *MySQLStore) GetPistageRunByNamespaceAndFlowIdentifier(workflowNamespac
 	workflowIdentifier string) (pistageRun *common.Run, err error) {
 	var pistageRunModel PistageRunModel
 	fmt.Println("workflowNamespace is " + workflowNamespace + "workflowIdentifier is " + workflowIdentifier)
-	err = ms.db.Where("workflow_namespace = ?", workflowNamespace).
+	err = ms.db.Debug().Where("workflow_namespace = ?", workflowNamespace).
 		Where("workflow_identifier = ?", workflowIdentifier).First(&pistageRunModel).Error
 	fmt.Println("err is ", err)
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
