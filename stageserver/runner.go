@@ -230,7 +230,7 @@ func (r *PistageRunner) rollbackWithStream() error {
 	})
 
 	fmt.Println("finishedJobRuns is ", finishedJobRuns)
-	err = r.rollbackJobs(finishedJobRuns)
+	err = r.rollbackJobs(finishedJobRuns, id)
 
 	if err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when rollbackJobs")
@@ -240,7 +240,7 @@ func (r *PistageRunner) rollbackWithStream() error {
 
 }
 
-func (r *PistageRunner) rollbackJobs(jobRuns []common.JobRun) error {
+func (r *PistageRunner) rollbackJobs(jobRuns []common.JobRun, pistageRunId string) error {
 	p := r.p
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
 	executorProvider := executors.GetExecutorProvider(p.Executor)
@@ -254,9 +254,8 @@ func (r *PistageRunner) rollbackJobs(jobRuns []common.JobRun) error {
 		if val, ok := 	p.Jobs[jobRuns[i].JobName]; ok {
 			fmt.Println("jobRuns[i].JobName is = ", jobRuns[i].JobName)
 			fmt.Println("val is ", val)
-			fmt.Println("r.run.ID" + string(r.run.ID))
 			fmt.Println(r.o)
-			executor, err := executorProvider.GetJobExecutor(val, p, common.NewLogTracer(r.run.ID, r.o))
+			executor, err := executorProvider.GetJobExecutor(val, p, common.NewLogTracer(pistageRunId, r.o))
 			if err != nil {
 				logger.WithError(err).Errorf("[Stager rollback] fail to get a job executor")
 				continue
