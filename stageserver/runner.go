@@ -2,6 +2,7 @@ package stageserver
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sort"
 	"sync"
@@ -206,8 +207,9 @@ func (r *PistageRunner) rollbackWithStream() error {
 		logger.WithError(err).Errorf("[Stager rollback] error when GetPistageRunByNamespaceAndFlowIdentifier")
 		return err
 	}
-	id := pistageRun.ID
 
+	id := pistageRun.ID
+	fmt.Println("pistageRun is ", pistageRun)
 	jobRuns, err := r.store.GetJobRunsByPistageRunId(id)
 	if err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when GetJobRunsByPistageRunId")
