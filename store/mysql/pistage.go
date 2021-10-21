@@ -87,7 +87,7 @@ func (ms *MySQLStore) GetPistageRunByNamespaceAndFlowIdentifier(workflowNamespac
 	err = ms.db.Debug().Where("workflow_namespace = ?", workflowNamespace).
 		Where("workflow_identifier = ?", workflowIdentifier).Last(&pistageRunModel).Error
 	fmt.Println("err is ", err)
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	fmt.Println("93 ")
