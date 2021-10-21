@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"github.com/projecteru2/pistage/common"
-	"github.com/projecteru2/pistage/store/model"
 )
 
 // Store is the interface for storage.
@@ -17,13 +16,13 @@ type Store interface {
 	GetPistageRun(id string) (*common.Run, error)
 	UpdatePistageRun(run *common.Run) error
 	GetPistageRunByNamespaceAndFlowIdentifier(workflowNamespace string,
-		workflowIdentifier string) (pistageRunModel *model.PistageRunModel, err error)
+		workflowIdentifier string) (pistageRunModel *common.Run, err error)
 
 	// JobRun
 	CreateJobRun(run *common.Run, jobRun *common.JobRun) error
 	GetJobRun(id string) (*common.JobRun, error)
 	UpdateJobRun(jobRun *common.JobRun) error
-	GetJobRunsByPistageRunId(id int64) ([]*common.JobRun, error)
+	GetJobRunsByPistageRunId(id string) ([]*common.JobRun, error)
 
 	// Register
 	GetRegisteredKhoriumStep(ctx context.Context, name string) (*common.KhoriumStep, error)

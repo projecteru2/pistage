@@ -201,12 +201,12 @@ func (r *PistageRunner) rollbackWithStream() error {
 		return err
 	}
 
-	pistageRunModel, err := r.store.GetPistageRunByNamespaceAndFlowIdentifier(p.WorkflowNamespace, p.WorkflowIdentifier)
+	pistageRun, err := r.store.GetPistageRunByNamespaceAndFlowIdentifier(p.WorkflowNamespace, p.WorkflowIdentifier)
 	if err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when GetPistageRunByNamespaceAndFlowIdentifier")
 		return err
 	}
-	id := pistageRunModel.ID
+	id := pistageRun.ID
 
 	jobRuns, err := r.store.GetJobRunsByPistageRunId(id)
 	if err != nil {

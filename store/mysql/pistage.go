@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"errors"
-	"github.com/projecteru2/pistage/store/model"
 	"gorm.io/gorm"
 	"strconv"
 
@@ -81,15 +80,23 @@ func (ms *MySQLStore) CreatePistageRun(pistage *common.Pistage, version string) 
 }
 
 func (ms *MySQLStore) GetPistageRunByNamespaceAndFlowIdentifier(workflowNamespace string,
-	workflowIdentifier string) (pistageRunModel *model.PistageRunModel, err error) {
+	workflowIdentifier string) (run *common.Run, err error) {
+	var pistageRunModel PistageRunModel
 	err = ms.db.First(&pistageRunModel).Where("workflow_namespace = ? ", workflowNamespace).
 		Where("workflow_identifier = ?", workflowIdentifier).Error
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
+	run = &common.Run{
+		ID:                 string(pistageRunModel.ID),
+		WorkflowNamespace:  pistageRunModel.WorkflowNamespace,
+		WorkflowIdentifier: pistageRunModel.WorkflowIdentifier,
+		Status:             common.RunStatus(pistageRunModel.RunStatus),
+		Start:              pistageRunModel.StartTime,
+		End:                pistageRunModel.EndTime,
+	}
 	return
 }
-
 
 func (ms *MySQLStore) GetPistageRun(id string) (run *common.Run, err error) {
 	var pistageRun PistageRunModel
