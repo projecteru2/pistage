@@ -92,7 +92,7 @@ func (ms *MySQLStore) GetPistageRunByNamespaceAndFlowIdentifier(workflowNamespac
 	}
 	fmt.Println("93 ")
 	pistageRun = &common.Run{
-		ID:                 string(pistageRunModel.ID),
+		ID:                 strconv.FormatInt(pistageRunModel.ID, 10),
 		WorkflowNamespace:  pistageRunModel.WorkflowNamespace,
 		WorkflowIdentifier: pistageRunModel.WorkflowIdentifier,
 		Status:             common.RunStatus(pistageRunModel.RunStatus),
