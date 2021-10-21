@@ -12,3 +12,8 @@ type PistageRunModel struct {
 	SnapshotVersion    int64  `gorm:"snapshot_version"`
 	RunStatus          string `gorm:"run_status"`
 }
+
+
+func (PistageRunModel) TableName() string {
+	return "pistage_run_tab"
+}
