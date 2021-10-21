@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"strconv"
 
@@ -95,6 +96,7 @@ func (ms *MySQLStore) GetPistageRunByNamespaceAndFlowIdentifier(workflowNamespac
 		Start:              pistageRunModel.StartTime,
 		End:                pistageRunModel.EndTime,
 	}
+	fmt.Println("99 pistageRun is ", pistageRun)
 	return
 }
 
