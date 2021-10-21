@@ -34,6 +34,7 @@ func (e *EruJobExecutor) RollbackOneJob(ctx context.Context, jobName string) err
 		if step.Name != jobName {
 			continue
 		}
+		fmt.Println("37 37 373737, Uses is = ", step.Uses)
 		var err error
 		switch step.Uses {
 		case "":
