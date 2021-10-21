@@ -252,6 +252,7 @@ func (r *PistageRunner) rollbackJobs(jobRuns []common.JobRun) error {
 	for i := range jobRuns {
 
 		if val, ok := p.Jobs[jobRuns[i].JobName]; ok {
+			fmt.Println("jobRuns[i].JobName is = ", jobRuns[i].JobName)
 			fmt.Println("val is ", val)
 			executor, err := executorProvider.GetJobExecutor(val, p, common.NewLogTracer(r.run.ID, r.o))
 			if err != nil {
