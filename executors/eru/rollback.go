@@ -38,6 +38,7 @@ func (e *EruJobExecutor) RollbackOneJob(ctx context.Context, jobName string) err
 		var err error
 		switch step.Uses {
 		case "":
+			fmt.Println("exec rollback")
 			err = e.executeStep(ctx, step)
 		default:
 			// step, err = e.replaceStepWithUses(ctx, step)

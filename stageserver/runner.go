@@ -251,7 +251,7 @@ func (r *PistageRunner) rollbackJobs(jobRuns []common.JobRun, pistageRunId strin
 
 	for i := range jobRuns {
 
-		if val, ok := 	p.Jobs[jobRuns[i].JobName]; ok {
+		if val, ok := p.Jobs[jobRuns[i].JobName]; ok {
 			fmt.Println("jobRuns[i].JobName is = ", jobRuns[i].JobName)
 			fmt.Println("val is ", val)
 			fmt.Println(r.o)
