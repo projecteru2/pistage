@@ -254,6 +254,8 @@ func (r *PistageRunner) rollbackJobs(jobRuns []common.JobRun) error {
 		if val, ok := 	p.Jobs[jobRuns[i].JobName]; ok {
 			fmt.Println("jobRuns[i].JobName is = ", jobRuns[i].JobName)
 			fmt.Println("val is ", val)
+			fmt.Println("r.run.ID" + string(r.run.ID))
+			fmt.Println(r.o)
 			executor, err := executorProvider.GetJobExecutor(val, p, common.NewLogTracer(r.run.ID, r.o))
 			if err != nil {
 				logger.WithError(err).Errorf("[Stager rollback] fail to get a job executor")
