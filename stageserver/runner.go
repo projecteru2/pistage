@@ -208,8 +208,9 @@ func (r *PistageRunner) rollbackWithStream() error {
 		return err
 	}
 
-	id := pistageRun.ID
 	fmt.Println("pistageRun is ", pistageRun)
+	id := pistageRun.ID
+
 	jobRuns, err := r.store.GetJobRunsByPistageRunId(id)
 	if err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when GetJobRunsByPistageRunId")
