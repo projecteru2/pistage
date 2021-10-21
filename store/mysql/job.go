@@ -87,7 +87,6 @@ func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []c
 			Status:             common.RunStatus(runModel.RunStatus),
 			Start:              runModel.StartTime,
 			End:                runModel.EndTime,
-			LogTracer:          nil,
 		}
 		result = append(result, jobRun)
 	}
