@@ -229,6 +229,7 @@ func (r *PistageRunner) rollbackWithStream() error {
 		return finishedJobRuns[i].Start > finishedJobRuns[j].Start
 	})
 
+	fmt.Println("finishedJobRuns is ", finishedJobRuns)
 	err = r.rollbackJobs(finishedJobRuns)
 
 	if err != nil {
