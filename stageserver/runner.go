@@ -249,32 +249,28 @@ func (r *PistageRunner) rollbackJobs(jobRuns []*common.JobRun, pistageRunId stri
 
 	for i := range jobRuns {
 
-		go func() {
-			if val, ok := p.Jobs[jobRuns[i].JobName]; ok {
-				executor, err = executorProvider.GetJobExecutor(val, p, common.NewLogTracer(pistageRunId, r.o))
-				if err != nil {
-					logger.WithError(err).Errorf("[Stager rollback] fail to get a job executor")
-					return
-				}
-
-				if err = executor.Prepare(context.TODO()); err != nil {
-					logger.WithError(err).Errorf("[Stager rollback] error when PREPARE")
-					return
-				}
-
-				if err = executor.Rollback(context.TODO(), jobRuns[i].JobName); err != nil {
-					logger.WithError(err).Errorf("[Stager rollback] error when EXECUTE")
-					return
-				}
-
-				defer func() {
-					if err := executor.Cleanup(context.TODO()); err != nil {
-						logger.WithError(err).Errorf("[Stager rollback] error when CLEANUP")
-						return
-					}
-				}()
+		if val, ok := p.Jobs[jobRuns[i].JobName]; ok {
+			executor, err = executorProvider.GetJobExecutor(val, p, common.NewLogTracer(pistageRunId, r.o))
+			if err != nil {
+				logger.WithError(err).Errorf("[Stager rollback] fail to get a job executor")
+				continue
 			}
-		}()
+
+			if err = executor.Prepare(context.TODO()); err != nil {
+				logger.WithError(err).Errorf("[Stager rollback] error when PREPARE")
+				return err
+			}
+
+			if err = executor.Rollback(context.TODO(), jobRuns[i].JobName); err != nil {
+				logger.WithError(err).Errorf("[Stager rollback] error when EXECUTE")
+				return err
+			}
+
+			if err := executor.Cleanup(context.TODO()); err != nil {
+				logger.WithError(err).Errorf("[Stager rollback] error when CLEANUP")
+				return err
+			}
+		}
 
 	}
 
