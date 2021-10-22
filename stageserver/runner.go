@@ -222,6 +222,7 @@ func (r *PistageRunner) rollbackWithStream() error {
 		fmt.Println("220job run is ", jobRuns[i])
 		if jobRuns[i].Status == common.RunStatusFinished {
 			fmt.Println("222job run is ", jobRuns[i])
+			jobRuns[i].LogTracer = common.NewLogTracer(id, r.o)
 			finishedJobRuns = append(finishedJobRuns, jobRuns[i])
 		}
 	}
