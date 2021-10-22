@@ -226,7 +226,7 @@ func (r *PistageRunner) rollbackWithStream() error {
 			finishedJobRuns = append(finishedJobRuns, jobRuns[i])
 		}
 	}
-
+	fmt.Println("finishedJobRuns is ", finishedJobRuns)
 	// descending sort by start time, start firstly will roll back finally
 	sort.Slice(finishedJobRuns, func(i, j int) bool {
 		return finishedJobRuns[i].Start > finishedJobRuns[j].Start
