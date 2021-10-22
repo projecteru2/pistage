@@ -2,6 +2,7 @@ package stageserver
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sort"
 	"sync"
@@ -217,6 +218,7 @@ func (r *PistageRunner) rollbackWithStream() error {
 	finishedJobRuns := make([]*common.JobRun, len(jobRuns))
 	for i := range jobRuns {
 		if jobRuns[i].Status == common.RunStatusFinished {
+			fmt.Println("job run is ", jobRuns[i])
 			finishedJobRuns = append(finishedJobRuns, jobRuns[i])
 		}
 	}
