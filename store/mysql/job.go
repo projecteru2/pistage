@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"strconv"
 
@@ -88,5 +89,6 @@ func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []*
 		}
 		result = append(result, jobRun)
 	}
+	fmt.Println("result = ", result)
 	return result, nil
 }
