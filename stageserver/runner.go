@@ -216,7 +216,7 @@ func (r *PistageRunner) rollbackWithStream() error {
 		return err
 	}
 
-	finishedJobRuns := make([]*common.JobRun, len(jobRuns))
+	finishedJobRuns := make([]*common.JobRun, 0)
 	for i := range jobRuns {
 		fmt.Println("i= ", i)
 		fmt.Println("220job run is ", jobRuns[i])
