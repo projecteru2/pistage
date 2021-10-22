@@ -237,12 +237,6 @@ func (sje *ShellJobExecutor) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-func (sje *ShellJobExecutor) Rollback (ctx context.Context) error {
-	return nil
-}
-
-
-
-func (sje *ShellJobExecutor) RollbackOneJob(ctx context.Context, jobName string) error {
+func (sje *ShellJobExecutor) Rollback(ctx context.Context, jobName string) error {
 	return nil
 }

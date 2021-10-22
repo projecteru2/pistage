@@ -306,11 +306,7 @@ func (ls *SSHJobExecutor) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-func (ls *SSHJobExecutor) Rollback(ctx context.Context) error {
-	return nil
-}
 
-
-func (ls *SSHJobExecutor) RollbackOneJob(ctx context.Context, jobName string) error {
+func (ls *SSHJobExecutor) Rollback(ctx context.Context, jobName string) error {
 	return nil
 }

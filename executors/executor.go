@@ -32,9 +32,8 @@ type JobExecutor interface {
 	// and remove the container / virtual machine runtime.
 	Cleanup(ctx context.Context) error
 
-	Rollback(ctx context.Context) error
 
-	RollbackOneJob(ctx context.Context, jobName string) error
+	Rollback(ctx context.Context, jobName string) error
 
 }
 
