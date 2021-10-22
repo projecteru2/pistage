@@ -78,7 +78,6 @@ func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []*
 	}
 	result := make([]*common.JobRun, 0)
 	for _, runModel := range runModels {
-		fmt.Println("runModel is ", runModel, " and address is ", &runModel)
 		jobRun := &common.JobRun{
 			ID:                 strconv.FormatInt(runModel.ID, 10),
 			WorkflowNamespace:  runModel.WorkflowNamespace,
@@ -90,6 +89,5 @@ func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []*
 		}
 		result = append(result, jobRun)
 	}
-	fmt.Println("result = ", result)
 	return result, nil
 }

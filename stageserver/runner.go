@@ -2,7 +2,6 @@ package stageserver
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"sort"
 	"sync"
@@ -210,7 +209,6 @@ func (r *PistageRunner) rollbackWithStream() error {
 	id := pistageRun.ID
 
 	jobRuns, err := r.store.GetJobRunsByPistageRunId(id)
-	fmt.Println("jobRuns= ", jobRuns)
 	if err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when GetJobRunsByPistageRunId")
 		return err
@@ -218,15 +216,11 @@ func (r *PistageRunner) rollbackWithStream() error {
 
 	finishedJobRuns := make([]*common.JobRun, 0)
 	for i := range jobRuns {
-		fmt.Println("i= ", i)
-		fmt.Println("220job run is ", jobRuns[i])
 		if jobRuns[i].Status == common.RunStatusFinished {
-			fmt.Println("222job run is ", jobRuns[i])
 			jobRuns[i].LogTracer = common.NewLogTracer(id, r.o)
 			finishedJobRuns = append(finishedJobRuns, jobRuns[i])
 		}
 	}
-	fmt.Println("finishedJobRuns is ", finishedJobRuns)
 	// descending sort by start time, start firstly will roll back finally
 	sort.Slice(finishedJobRuns, func(i, j int) bool {
 		return finishedJobRuns[i].Start > finishedJobRuns[j].Start
