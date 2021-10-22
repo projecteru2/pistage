@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"errors"
-	"fmt"
 	"gorm.io/gorm"
 	"strconv"
 
@@ -83,14 +82,11 @@ func (ms *MySQLStore) CreatePistageRun(pistage *common.Pistage, version string) 
 func (ms *MySQLStore) GetPistageRunByNamespaceAndFlowIdentifier(workflowNamespace string,
 	workflowIdentifier string) (pistageRun *common.Run, err error) {
 	var pistageRunModel PistageRunModel
-	fmt.Println("workflowNamespace is " + workflowNamespace + "workflowIdentifier is " + workflowIdentifier)
 	err = ms.db.Debug().Where("workflow_namespace = ?", workflowNamespace).
 		Where("workflow_identifier = ?", workflowIdentifier).Last(&pistageRunModel).Error
-	fmt.Println("err is ", err)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	fmt.Println("93 ")
 	pistageRun = &common.Run{
 		ID:                 strconv.FormatInt(pistageRunModel.ID, 10),
 		WorkflowNamespace:  pistageRunModel.WorkflowNamespace,
@@ -99,7 +95,6 @@ func (ms *MySQLStore) GetPistageRunByNamespaceAndFlowIdentifier(workflowNamespac
 		Start:              pistageRunModel.StartTime,
 		End:                pistageRunModel.EndTime,
 	}
-	fmt.Println("102 pistageRun is ", pistageRun)
 	return pistageRun, nil
 }
 

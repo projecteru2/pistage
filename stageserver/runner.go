@@ -2,7 +2,6 @@ package stageserver
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"sort"
 	"sync"
@@ -192,7 +191,6 @@ func (r *PistageRunner) runOneJob(job *common.Job) error {
 	return nil
 }
 
-// todo: rollback function business logic
 func (r *PistageRunner) rollbackWithStream() error {
 	p := r.p
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
@@ -208,7 +206,6 @@ func (r *PistageRunner) rollbackWithStream() error {
 		return err
 	}
 
-	fmt.Println("pistageRun is ", pistageRun)
 	id := pistageRun.ID
 
 	jobRuns, err := r.store.GetJobRunsByPistageRunId(id)
@@ -229,7 +226,6 @@ func (r *PistageRunner) rollbackWithStream() error {
 		return finishedJobRuns[i].Start > finishedJobRuns[j].Start
 	})
 
-	fmt.Println("finishedJobRuns is ", finishedJobRuns)
 	err = r.rollbackJobs(finishedJobRuns, id)
 
 	if err != nil {
@@ -252,17 +248,24 @@ func (r *PistageRunner) rollbackJobs(jobRuns []*common.JobRun, pistageRunId stri
 	for i := range jobRuns {
 
 		if val, ok := p.Jobs[jobRuns[i].JobName]; ok {
-			fmt.Println("jobRuns[i].JobName is = ", jobRuns[i].JobName)
-			fmt.Println("val is ", val)
-			fmt.Println(r.o)
 			executor, err := executorProvider.GetJobExecutor(val, p, common.NewLogTracer(pistageRunId, r.o))
-			fmt.Println("start to rollback 259")
 			if err != nil {
 				logger.WithError(err).Errorf("[Stager rollback] fail to get a job executor")
 				continue
 			}
 
-			fmt.Println("start to rollback 265")
+			defer func() {
+				if err := executor.Cleanup(context.TODO()); err != nil {
+					logger.WithError(err).Errorf("[Stager rollback] error when CLEANUP")
+					return
+				}
+			}()
+
+			if err := executor.Prepare(context.TODO()); err != nil {
+				logger.WithError(err).Errorf("[Stager rollback] error when PREPARE")
+				return err
+			}
+
 			if err := executor.RollbackOneJob(context.TODO(), jobRuns[i].JobName); err != nil {
 				logger.WithError(err).Errorf("[Stager rollback] error when EXECUTE")
 				return err
