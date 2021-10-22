@@ -76,9 +76,9 @@ func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []*
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	result := make([]*common.JobRun, len(runModels))
+	result := make([]*common.JobRun, 0)
 	for _, runModel := range runModels {
-		fmt.Println("runModel is ", runModel)
+		fmt.Println("runModel is ", runModel, " and address is ", &runModel)
 		jobRun := &common.JobRun{
 			ID:                 strconv.FormatInt(runModel.ID, 10),
 			WorkflowNamespace:  runModel.WorkflowNamespace,
