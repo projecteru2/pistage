@@ -33,6 +33,8 @@ type JobExecutor interface {
 	Cleanup(ctx context.Context) error
 
 
+	// Rollback is a function can execute rollback_steps commands which are defined in yaml file
+	// just regard rollback_steps as a normal steps
 	Rollback(ctx context.Context, jobName string) error
 
 }

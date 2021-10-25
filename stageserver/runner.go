@@ -266,7 +266,7 @@ func (r *PistageRunner) rollbackJobs(jobRuns []*common.JobRun, pistageRunId stri
 				return err
 			}
 
-			if err := executor.Cleanup(context.TODO()); err != nil {
+			if err = executor.Cleanup(context.TODO()); err != nil {
 				logger.WithError(err).Errorf("[Stager rollback] error when CLEANUP")
 				return err
 			}

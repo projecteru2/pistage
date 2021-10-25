@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-
+// Rollback is a function can execute rollback_steps commands which are defined in yaml file
 func (e *EruJobExecutor) Rollback(ctx context.Context, jobName string) error {
 	for _, step := range e.job.RollBackSteps {
 		if step.Name != jobName {
@@ -15,10 +15,6 @@ func (e *EruJobExecutor) Rollback(ctx context.Context, jobName string) error {
 		case "":
 			err = e.executeStep(ctx, step)
 		default:
-			// step, err = e.replaceStepWithUses(ctx, step)
-			// if err != nil {
-			// 	return err
-			// }
 			err = e.executeKhoriumStep(ctx, step)
 		}
 		if err != nil {
