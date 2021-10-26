@@ -55,9 +55,8 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 	if err != nil {
 		return nil, err
 	}
-
 	// Discard the output
-	g.stager.Add(&common.PistageTask{Pistage: pistage, Output: common.ClosableDiscard})
+	g.stager.Add(&common.PistageTask{Pistage: pistage, JobType: common.Apply, Output: common.ClosableDiscard})
 	return &proto.ApplyPistageOnewayReply{
 		Name:    pistage.Name(),
 		Success: err == nil,
@@ -69,16 +68,38 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pi
 	if err != nil {
 		return err
 	}
-
 	// We use a pipe here to retrieve the logs across all jobs within this pistage.
 	// Use common.DonCloseWriter to avoid writing end of the pipe being closed by LogTracer.
 	// It's a bit tricky here...
 	r, w := io.Pipe()
-	g.stager.Add(&common.PistageTask{Pistage: pistage, Output: common.DonCloseWriter{Writer: w}})
+	g.stager.Add(&common.PistageTask{Pistage: pistage, JobType: common.Apply, Output: common.DonCloseWriter{Writer: w}})
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		if err := stream.Send(&proto.ApplyPistageStreamReply{
+			Name: pistage.Name(),
+			Log:  scanner.Text(),
+		}); err != nil {
+			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPistageStreamReply")
+		}
+	}
+	return nil
+}
+
+func (g *GRPCServer) RollbackStream(req *proto.RollbackPistageRequest, stream proto.Pistage_RollbackStreamServer) error {
+	pistage, err := common.FromSpec([]byte(req.GetContent()))
+	if err != nil {
+		return err
+	}
+
+	// generate output
+	r, w := io.Pipe()
+	g.stager.Add(&common.PistageTask{Pistage: pistage, JobType: common.Rollback, Output: common.DonCloseWriter{Writer: w}})
+
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		if err := stream.Send(&proto.RollbackPistageStreamReply{
 			Name: pistage.Name(),
 			Log:  scanner.Text(),
 		}); err != nil {

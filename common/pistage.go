@@ -177,6 +177,9 @@ type PistageTask struct {
 	// Pistage holds the pistage to execute.
 	Pistage *Pistage
 
+	// JobType is used to distinguish cli command kind, like rollback/apply
+	JobType string
+
 	// Output is the tracing stream for logs.
 	// It's an io.WriteCloser, closing this output indicates that
 	// all logs have been written into this stream, the pistage
