@@ -31,6 +31,10 @@ type JobExecutor interface {
 	// Usually it does cleaning work, collects necessary artifacts,
 	// and remove the container / virtual machine runtime.
 	Cleanup(ctx context.Context) error
+
+	// Rollback is a function can execute rollback_steps commands which are defined in yaml file
+	// just regard rollback_steps as a normal steps
+	Rollback(ctx context.Context) error
 }
 
 // ExecutorProvider is basically the factory of JobExecutor

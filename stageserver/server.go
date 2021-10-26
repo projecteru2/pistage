@@ -61,8 +61,18 @@ func (s *StageServer) runner(id int) {
 			// if err := s.runWithGraph(pt); err != nil {
 			// 	logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
 			// }
-			if err := r.runWithStream(); err != nil {
-				logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
+
+			switch pt.JobType {
+			case common.Apply:
+				if err := r.runWithStream(); err != nil {
+					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
+				}
+			case common.Rollback:
+				if err := r.rollbackWithStream(); err != nil {
+					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when rollback a pistage")
+				}
+			default:
+
 			}
 
 			// We need to close the Output here, indicating the pistage is finished,

@@ -35,6 +35,35 @@ func applyOneway(c *cli.Context) error {
 	return nil
 }
 
+func rollbackStream(c *cli.Context) error {
+	content, err := ioutil.ReadFile(c.String("file"))
+	if err != nil {
+		return err
+	}
+
+	client, err := newClient(c)
+	if err != nil {
+		return err
+	}
+
+	stream, err := client.RollbackStream(context.TODO(), &proto.RollbackPistageRequest{Content: string(content)})
+	if err != nil {
+		return err
+	}
+
+	for {
+		message, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		logrus.Infof("[%s] %s", message.Name, message.Log)
+	}
+	return nil
+}
+
 func applyStream(c *cli.Context) error {
 	content, err := ioutil.ReadFile(c.String("file"))
 	if err != nil {
@@ -77,6 +106,29 @@ func ApplyCommands() *cli.Command {
 		Usage: "Apply a Pistage",
 		Action: func(c *cli.Context) error {
 			return apply(c)
+		},
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "file",
+				Aliases: []string{"f"},
+				Value:   "pistage.yml",
+				Usage:   "Pistage yaml description file",
+			},
+			&cli.BoolFlag{
+				Name:  "stream",
+				Value: false,
+				Usage: "If set, will wait and print all the logs from pistage",
+			},
+		},
+	}
+}
+
+func RollbackCommands() *cli.Command {
+	return &cli.Command{
+		Name:  "rollback",
+		Usage: "rollback some steps",
+		Action: func(c *cli.Context) error {
+			return rollbackStream(c)
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{

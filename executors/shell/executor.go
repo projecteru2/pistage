@@ -236,3 +236,7 @@ func (sje *ShellJobExecutor) Cleanup(ctx context.Context) error {
 	}
 	return nil
 }
+
+func (sje *ShellJobExecutor) Rollback(ctx context.Context) error {
+	return nil
+}

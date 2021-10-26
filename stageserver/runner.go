@@ -3,6 +3,7 @@ package stageserver
 import (
 	"context"
 	"io"
+	"sort"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -187,5 +188,105 @@ func (r *PistageRunner) runOneJob(job *common.Job) error {
 		return err
 	}
 
+	return nil
+}
+
+func (r *PistageRunner) rollbackWithStream() error {
+	p := r.p
+	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
+
+	if err := p.GenerateHash(); err != nil {
+		logger.WithError(err).Error("[Stager runWithStream] gen hash failed")
+		return err
+	}
+
+	pistageRun, err := r.store.GetLatestPistageRunByNamespaceAndFlowIdentifier(p.WorkflowNamespace, p.WorkflowIdentifier)
+	if err != nil {
+		logger.WithError(err).Errorf("[Stager rollback] error when GetLatestPistageRunByNamespaceAndFlowIdentifier")
+		return err
+	}
+
+	id := pistageRun.ID
+
+	jobRuns, err := r.store.GetJobRunsByPistageRunId(id)
+	if err != nil {
+		logger.WithError(err).Errorf("[Stager rollback] error when GetJobRunsByPistageRunId")
+		return err
+	}
+
+	finishedJobRuns := make([]*common.JobRun, 0)
+	for i := range jobRuns {
+		if jobRuns[i].Status == common.RunStatusFinished {
+			jobRuns[i].LogTracer = common.NewLogTracer(id, r.o)
+			finishedJobRuns = append(finishedJobRuns, jobRuns[i])
+		}
+	}
+
+	if len(finishedJobRuns) == 0 {
+		return nil
+	}
+
+	// descending sort by start time, start firstly will roll back finally
+	sort.Slice(finishedJobRuns, func(i, j int) bool {
+		return finishedJobRuns[i].Start > finishedJobRuns[j].Start
+	})
+
+	err = r.rollbackJobs(finishedJobRuns, id)
+
+	if err != nil {
+		logger.WithError(err).Errorf("[Stager rollback] error when rollbackJobs")
+		return err
+	}
+	return nil
+}
+
+func (r *PistageRunner) rollbackJobs(jobRuns []*common.JobRun, pistageRunId string) error {
+	p := r.p
+	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
+
+	for i := range jobRuns {
+		if job, ok := p.Jobs[jobRuns[i].JobName]; ok {
+			logger.Info("start to rollback job, job is ", job, " and pistageRunId is ", pistageRunId)
+
+			err := r.rollbackOneJob(job, pistageRunId)
+
+			if err != nil {
+				logger.WithError(err).Errorf("[Stager rollback] fail to rollback")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (r *PistageRunner) rollbackOneJob(job *common.Job, pistageRunId string) error {
+	p := r.p
+	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
+	executorProvider := executors.GetExecutorProvider(p.Executor)
+	if executorProvider == nil {
+		logger.Errorf("[Stager runOneJob] fail to get a provider")
+		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, p.Name())
+	}
+
+	executor, err := executorProvider.GetJobExecutor(job, p, common.NewLogTracer(pistageRunId, r.o))
+	if err != nil {
+		logger.WithError(err).Errorf("[Stager rollback] fail to get a job executor")
+		return err
+	}
+
+	if err = executor.Prepare(context.TODO()); err != nil {
+		logger.WithError(err).Errorf("[Stager rollback] error when PREPARE")
+		return err
+	}
+
+	if err = executor.Rollback(context.TODO()); err != nil {
+		logger.WithError(err).Errorf("[Stager rollback] error when EXECUTE")
+		return err
+	}
+
+	if err = executor.Cleanup(context.TODO()); err != nil {
+		logger.WithError(err).Errorf("[Stager rollback] error when CLEANUP")
+		return err
+	}
 	return nil
 }

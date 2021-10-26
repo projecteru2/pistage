@@ -7,6 +7,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/projecteru2/pistage/common"
 	"github.com/projecteru2/pistage/store"
@@ -21,7 +22,9 @@ type MySQLStore struct {
 }
 
 func NewMySQLStore(c *common.SQLDataSourceConfig, khoriumManager *store.KhoriumManager) (*MySQLStore, error) {
-	gormDB, err := gorm.Open(mysql.Open(c.DSN()), &gorm.Config{})
+	gormDB, err := gorm.Open(mysql.Open(c.DSN()), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		return nil, err
 	}

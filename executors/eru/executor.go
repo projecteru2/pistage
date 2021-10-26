@@ -161,7 +161,12 @@ func (e *EruJobExecutor) prepareFileContext(ctx context.Context) error {
 
 // Execute will execute all steps within this job one by one
 func (e *EruJobExecutor) Execute(ctx context.Context) error {
-	for _, step := range e.job.Steps {
+	return e.executeSteps(ctx, e.job.Steps)
+}
+
+// executeDifferentJob dispatch executor
+func (e *EruJobExecutor) executeSteps(ctx context.Context, steps []*common.Step) error {
+	for _, step := range steps {
 		var err error
 		switch step.Uses {
 		case "":
@@ -385,4 +390,9 @@ func (e *EruJobExecutor) Cleanup(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// Rollback is a function can execute rollback_steps commands which are defined in yaml file
+func (e *EruJobExecutor) Rollback(ctx context.Context) error {
+	return e.executeSteps(ctx, e.job.RollbackSteps)
 }

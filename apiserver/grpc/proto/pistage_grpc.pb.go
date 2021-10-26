@@ -20,6 +20,8 @@ const _ = grpc.SupportPackageIsVersion7
 type PistageClient interface {
 	ApplyOneway(ctx context.Context, in *ApplyPistageRequest, opts ...grpc.CallOption) (*ApplyPistageOnewayReply, error)
 	ApplyStream(ctx context.Context, in *ApplyPistageRequest, opts ...grpc.CallOption) (Pistage_ApplyStreamClient, error)
+	RollbackOneway(ctx context.Context, in *RollbackPistageRequest, opts ...grpc.CallOption) (*RollbackReply, error)
+	RollbackStream(ctx context.Context, in *RollbackPistageRequest, opts ...grpc.CallOption) (Pistage_RollbackStreamClient, error)
 }
 
 type pistageClient struct {
@@ -71,12 +73,55 @@ func (x *pistageApplyStreamClient) Recv() (*ApplyPistageStreamReply, error) {
 	return m, nil
 }
 
+func (c *pistageClient) RollbackOneway(ctx context.Context, in *RollbackPistageRequest, opts ...grpc.CallOption) (*RollbackReply, error) {
+	out := new(RollbackReply)
+	err := c.cc.Invoke(ctx, "/proto.Pistage/RollbackOneway", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pistageClient) RollbackStream(ctx context.Context, in *RollbackPistageRequest, opts ...grpc.CallOption) (Pistage_RollbackStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Pistage_ServiceDesc.Streams[1], "/proto.Pistage/RollbackStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &pistageRollbackStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Pistage_RollbackStreamClient interface {
+	Recv() (*RollbackPistageStreamReply, error)
+	grpc.ClientStream
+}
+
+type pistageRollbackStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *pistageRollbackStreamClient) Recv() (*RollbackPistageStreamReply, error) {
+	m := new(RollbackPistageStreamReply)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PistageServer is the server API for Pistage service.
 // All implementations must embed UnimplementedPistageServer
 // for forward compatibility
 type PistageServer interface {
 	ApplyOneway(context.Context, *ApplyPistageRequest) (*ApplyPistageOnewayReply, error)
 	ApplyStream(*ApplyPistageRequest, Pistage_ApplyStreamServer) error
+	RollbackOneway(context.Context, *RollbackPistageRequest) (*RollbackReply, error)
+	RollbackStream(*RollbackPistageRequest, Pistage_RollbackStreamServer) error
 	mustEmbedUnimplementedPistageServer()
 }
 
@@ -89,6 +134,12 @@ func (UnimplementedPistageServer) ApplyOneway(context.Context, *ApplyPistageRequ
 }
 func (UnimplementedPistageServer) ApplyStream(*ApplyPistageRequest, Pistage_ApplyStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method ApplyStream not implemented")
+}
+func (UnimplementedPistageServer) RollbackOneway(context.Context, *RollbackPistageRequest) (*RollbackReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RollbackOneway not implemented")
+}
+func (UnimplementedPistageServer) RollbackStream(*RollbackPistageRequest, Pistage_RollbackStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method RollbackStream not implemented")
 }
 func (UnimplementedPistageServer) mustEmbedUnimplementedPistageServer() {}
 
@@ -142,6 +193,45 @@ func (x *pistageApplyStreamServer) Send(m *ApplyPistageStreamReply) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Pistage_RollbackOneway_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RollbackPistageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PistageServer).RollbackOneway(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Pistage/RollbackOneway",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PistageServer).RollbackOneway(ctx, req.(*RollbackPistageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Pistage_RollbackStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RollbackPistageRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(PistageServer).RollbackStream(m, &pistageRollbackStreamServer{stream})
+}
+
+type Pistage_RollbackStreamServer interface {
+	Send(*RollbackPistageStreamReply) error
+	grpc.ServerStream
+}
+
+type pistageRollbackStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *pistageRollbackStreamServer) Send(m *RollbackPistageStreamReply) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Pistage_ServiceDesc is the grpc.ServiceDesc for Pistage service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -153,11 +243,20 @@ var Pistage_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ApplyOneway",
 			Handler:    _Pistage_ApplyOneway_Handler,
 		},
+		{
+			MethodName: "RollbackOneway",
+			Handler:    _Pistage_RollbackOneway_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "ApplyStream",
 			Handler:       _Pistage_ApplyStream_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "RollbackStream",
+			Handler:       _Pistage_RollbackStream_Handler,
 			ServerStreams: true,
 		},
 	},
