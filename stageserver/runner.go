@@ -215,10 +215,10 @@ func (r *PistageRunner) rollbackWithStream() error {
 	}
 
 	finishedJobRuns := make([]*common.JobRun, 0)
-	for i := range jobRuns {
-		if jobRuns[i].Status == common.RunStatusFinished {
-			jobRuns[i].LogTracer = common.NewLogTracer(id, r.o)
-			finishedJobRuns = append(finishedJobRuns, jobRuns[i])
+	for _, jobRun := range jobRuns {
+		if jobRun.Status == common.RunStatusFinished {
+			jobRun.LogTracer = common.NewLogTracer(id, r.o)
+			finishedJobRuns = append(finishedJobRuns, jobRun)
 		}
 	}
 
@@ -243,13 +243,9 @@ func (r *PistageRunner) rollbackWithStream() error {
 func (r *PistageRunner) rollbackJobs(jobRuns []*common.JobRun, pistageRunId string) error {
 	p := r.p
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
-
-	for i := range jobRuns {
-		if job, ok := p.Jobs[jobRuns[i].JobName]; ok {
-			logger.Info("start to rollback job, job is ", job, " and pistageRunId is ", pistageRunId)
-
+	for _, jobRun := range jobRuns {
+		if job, ok := p.Jobs[jobRun.JobName]; ok {
 			err := r.rollbackOneJob(job, pistageRunId)
-
 			if err != nil {
 				logger.WithError(err).Errorf("[Stager rollback] fail to rollback")
 				return err
@@ -264,7 +260,7 @@ func (r *PistageRunner) rollbackOneJob(job *common.Job, pistageRunId string) err
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
 	executorProvider := executors.GetExecutorProvider(p.Executor)
 	if executorProvider == nil {
-		logger.Errorf("[Stager runOneJob] fail to get a provider")
+		logger.Errorf("[Stager rollbackOneJob] fail to get a provider")
 		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, p.Name())
 	}
 

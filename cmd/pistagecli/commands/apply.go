@@ -35,35 +35,6 @@ func applyOneway(c *cli.Context) error {
 	return nil
 }
 
-func rollbackStream(c *cli.Context) error {
-	content, err := ioutil.ReadFile(c.String("file"))
-	if err != nil {
-		return err
-	}
-
-	client, err := newClient(c)
-	if err != nil {
-		return err
-	}
-
-	stream, err := client.RollbackStream(context.TODO(), &proto.RollbackPistageRequest{Content: string(content)})
-	if err != nil {
-		return err
-	}
-
-	for {
-		message, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-		logrus.Infof("[%s] %s", message.Name, message.Log)
-	}
-	return nil
-}
-
 func applyStream(c *cli.Context) error {
 	content, err := ioutil.ReadFile(c.String("file"))
 	if err != nil {
@@ -100,6 +71,66 @@ func apply(c *cli.Context) error {
 	return applyOneway(c)
 }
 
+func rollback(c *cli.Context) error {
+	if c.Bool("stream") {
+		return rollbackStream(c)
+	}
+	return rollbackOneway(c)
+}
+
+func rollbackOneway(c *cli.Context) error {
+	content, err := ioutil.ReadFile(c.String("file"))
+	if err != nil {
+		return err
+	}
+
+	client, err := newClient(c)
+	if err != nil {
+		return err
+	}
+
+	reply, err := client.RollbackOneway(context.TODO(), &proto.RollbackPistageRequest{Content: string(content)})
+	if err != nil {
+		return err
+	}
+
+	if reply.GetSuccess() {
+		logrus.Info("Rollbacked")
+	} else {
+		logrus.Error("Failed to Rollback")
+	}
+	return nil
+}
+
+func rollbackStream(c *cli.Context) error {
+	content, err := ioutil.ReadFile(c.String("file"))
+	if err != nil {
+		return err
+	}
+
+	client, err := newClient(c)
+	if err != nil {
+		return err
+	}
+
+	stream, err := client.RollbackStream(context.TODO(), &proto.RollbackPistageRequest{Content: string(content)})
+	if err != nil {
+		return err
+	}
+
+	for {
+		message, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		logrus.Infof("[%s] %s", message.Name, message.Log)
+	}
+	return nil
+}
+
 func ApplyCommands() *cli.Command {
 	return &cli.Command{
 		Name:  "apply",
@@ -128,7 +159,7 @@ func RollbackCommands() *cli.Command {
 		Name:  "rollback",
 		Usage: "rollback some steps",
 		Action: func(c *cli.Context) error {
-			return rollbackStream(c)
+			return rollback(c)
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
