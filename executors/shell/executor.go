@@ -87,7 +87,11 @@ func (sje *ShellJobExecutor) defaultEnvironmentVariables() map[string]string {
 
 // Execute will execute all steps within this job one by one
 func (sje *ShellJobExecutor) Execute(ctx context.Context) error {
-	for _, step := range sje.job.Steps {
+	return sje.executeSteps(ctx, sje.job.Steps)
+}
+
+func (sje *ShellJobExecutor) executeSteps(ctx context.Context, steps []*common.Step) error {
+	for _, step := range steps {
 		var err error
 		switch step.Uses {
 		case "":
@@ -237,6 +241,7 @@ func (sje *ShellJobExecutor) Cleanup(ctx context.Context) error {
 	return nil
 }
 
+// Rollback is used to execute Rollback_steps commands
 func (sje *ShellJobExecutor) Rollback(ctx context.Context) error {
-	return nil
+	return sje.executeSteps(ctx, sje.job.RollbackSteps)
 }

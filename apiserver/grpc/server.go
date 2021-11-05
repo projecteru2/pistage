@@ -58,8 +58,9 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 	// Discard the output
 	g.stager.Add(&common.PistageTask{Pistage: pistage, JobType: common.Apply, Output: common.ClosableDiscard})
 	return &proto.ApplyPistageOnewayReply{
-		Name:    pistage.Name(),
-		Success: err == nil,
+		WorkflowNamespace:  pistage.WorkflowNamespace,
+		WorkflowIdentifier: pistage.WorkflowIdentifier,
+		Success:            err == nil,
 	}, err
 }
 
@@ -77,13 +78,28 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pi
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		if err := stream.Send(&proto.ApplyPistageStreamReply{
-			Name: pistage.Name(),
-			Log:  scanner.Text(),
+			WorkflowNamespace:  pistage.WorkflowNamespace,
+			WorkflowIdentifier: pistage.WorkflowIdentifier,
+			Log:                scanner.Text(),
 		}); err != nil {
 			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPistageStreamReply")
 		}
 	}
 	return nil
+}
+
+func (g *GRPCServer) RollbackOneway(ctx context.Context, req *proto.RollbackPistageRequest) (*proto.RollbackReply, error) {
+	pistage, err := common.FromSpec([]byte(req.GetContent()))
+	if err != nil {
+		return nil, err
+	}
+	// Discard the output
+	g.stager.Add(&common.PistageTask{Pistage: pistage, JobType: common.Rollback, Output: common.ClosableDiscard})
+	return &proto.RollbackReply{
+		WorkflowNamespace:  pistage.WorkflowNamespace,
+		WorkflowIdentifier: pistage.WorkflowIdentifier,
+		Success:            err == nil,
+	}, err
 }
 
 func (g *GRPCServer) RollbackStream(req *proto.RollbackPistageRequest, stream proto.Pistage_RollbackStreamServer) error {
@@ -100,8 +116,9 @@ func (g *GRPCServer) RollbackStream(req *proto.RollbackPistageRequest, stream pr
 
 	for scanner.Scan() {
 		if err := stream.Send(&proto.RollbackPistageStreamReply{
-			Name: pistage.Name(),
-			Log:  scanner.Text(),
+			WorkflowNamespace:  pistage.WorkflowNamespace,
+			WorkflowIdentifier: pistage.WorkflowIdentifier,
+			Log:                scanner.Text(),
 		}); err != nil {
 			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPistageStreamReply")
 		}

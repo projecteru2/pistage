@@ -150,7 +150,12 @@ func (s *SSHJobExecutor) defaultEnvironmentVariables() map[string]string {
 
 // Execute will execute all steps within this job one by one
 func (s *SSHJobExecutor) Execute(ctx context.Context) error {
-	for _, step := range s.job.Steps {
+	return s.executeSteps(ctx, s.job.Steps)
+}
+
+// executeSteps will execute steps, steps can be steps or rollback_steps
+func (s *SSHJobExecutor) executeSteps(ctx context.Context, steps []*common.Step) error {
+	for _, step := range steps {
 		var err error
 		switch step.Uses {
 		case "":
@@ -306,6 +311,7 @@ func (ls *SSHJobExecutor) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-func (ls *SSHJobExecutor) Rollback(ctx context.Context) error {
-	return nil
+// Rollback is a function can rollback steps by rollback_steps which defined in YAML
+func (s *SSHJobExecutor) Rollback(ctx context.Context) error {
+	return s.executeSteps(ctx, s.job.RollbackSteps)
 }
