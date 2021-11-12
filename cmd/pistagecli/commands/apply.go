@@ -59,7 +59,7 @@ func applyStream(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		logrus.Infof("[%s] %s", message.Name, message.Log)
+		logrus.Infof("[%s:%s] %s", message.WorkflowNamespace, message.WorkflowIdentifier, message.Log)
 	}
 	return nil
 }
@@ -126,7 +126,7 @@ func rollbackStream(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		logrus.Infof("[%s] %s", message.Name, message.Log)
+		logrus.Infof("[%s:%s] %s", message.WorkflowNamespace, message.WorkflowIdentifier, message.Log)
 	}
 	return nil
 }
