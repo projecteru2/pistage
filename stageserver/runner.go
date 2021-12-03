@@ -17,6 +17,7 @@ import (
 // PistageRunner runs a complete workflow.
 type PistageRunner struct {
 	sync.Mutex
+	ctx context.Context
 
 	// Pistage holds the pistage to execute.
 	p *common.Pistage
@@ -34,8 +35,9 @@ type PistageRunner struct {
 	run     *common.Run
 }
 
-func NewRunner(pt *common.PistageTask, store store.Store) *PistageRunner {
+func NewRunner(pt *common.PistageTask, store store.Store, ctx context.Context) *PistageRunner {
 	return &PistageRunner{
+		ctx:     ctx,
 		p:       pt.Pistage,
 		store:   store,
 		o:       pt.Output,
@@ -170,19 +172,19 @@ func (r *PistageRunner) runOneJob(job *common.Job) error {
 	}
 
 	defer func() {
-		if err := executor.Cleanup(context.TODO()); err != nil {
+		if err := executor.Cleanup(r.ctx); err != nil {
 			logger.WithError(err).Errorf("[Stager runOneJob] error when CLEANUP")
 			return
 		}
 	}()
 
-	if err := executor.Prepare(context.TODO()); err != nil {
+	if err := executor.Prepare(r.ctx); err != nil {
 		jobRun.Status = common.RunStatusFailed
 		logger.WithError(err).Errorf("[Stager runOneJob] error when PREPARE")
 		return err
 	}
 
-	if err := executor.Execute(context.TODO()); err != nil {
+	if err := executor.Execute(r.ctx); err != nil {
 		jobRun.Status = common.RunStatusFailed
 		logger.WithError(err).Errorf("[Stager runOneJob] error when EXECUTE")
 		return err
@@ -270,17 +272,17 @@ func (r *PistageRunner) rollbackOneJob(job *common.Job, pistageRunId string) err
 		return err
 	}
 
-	if err = executor.Prepare(context.TODO()); err != nil {
+	if err = executor.Prepare(r.ctx); err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when PREPARE")
 		return err
 	}
 
-	if err = executor.Rollback(context.TODO()); err != nil {
+	if err = executor.Rollback(r.ctx); err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when EXECUTE")
 		return err
 	}
 
-	if err = executor.Cleanup(context.TODO()); err != nil {
+	if err = executor.Cleanup(r.ctx); err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when CLEANUP")
 		return err
 	}

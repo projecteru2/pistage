@@ -29,7 +29,9 @@ func StartPistage(c *cli.Context) error {
 	}
 	defer store.Close()
 
-	if err := helpers.InitExecutorProvider(config, store); err != nil {
+	ctx, cancel := signalcontext.OnInterrupt()
+	defer cancel()
+	if err := helpers.InitExecutorProvider(config, store, ctx); err != nil {
 		return err
 	}
 
@@ -38,10 +40,7 @@ func StartPistage(c *cli.Context) error {
 		return err
 	}
 
-	ctx, cancel := signalcontext.OnInterrupt()
-	defer cancel()
-
-	s := stageserver.NewStageServer(config, store)
+	s := stageserver.NewStageServer(config, store, ctx)
 	s.Start()
 	logrus.Info("[Stager] started")
 

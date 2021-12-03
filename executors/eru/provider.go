@@ -19,8 +19,8 @@ type EruJobExecutorProvider struct {
 	store  store.Store
 }
 
-func NewEruJobExecutorProvider(config *common.Config, store store.Store) (*EruJobExecutorProvider, error) {
-	c, err := coreclient.NewClient(context.TODO(), config.Eru.Address, coretypes.AuthConfig{
+func NewEruJobExecutorProvider(config *common.Config, store store.Store, ctx context.Context) (*EruJobExecutorProvider, error) {
+	c, err := coreclient.NewClient(ctx, config.Eru.Address, coretypes.AuthConfig{
 		Username: config.Eru.Username,
 		Password: config.Eru.Password,
 	})
