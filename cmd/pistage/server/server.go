@@ -40,7 +40,7 @@ func StartPistage(c *cli.Context) error {
 		return err
 	}
 
-	s := stageserver.NewStageServer(config, store, ctx)
+	s := stageserver.NewStageServer(config, store)
 	s.Start()
 	logrus.Info("[Stager] started")
 

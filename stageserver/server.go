@@ -1,7 +1,6 @@
 package stageserver
 
 import (
-	"context"
 	"runtime"
 	"sync"
 
@@ -12,7 +11,6 @@ import (
 )
 
 type StageServer struct {
-	ctx context.Context
 	config *common.Config
 	stages chan *common.PistageTask
 	stop   chan struct{}
@@ -20,9 +18,8 @@ type StageServer struct {
 	wg     sync.WaitGroup
 }
 
-func NewStageServer(config *common.Config, store store.Store, ctx context.Context) *StageServer {
+func NewStageServer(config *common.Config, store store.Store) *StageServer {
 	return &StageServer{
-		ctx: ctx,
 		config: config,
 		stages: make(chan *common.PistageTask),
 		stop:   make(chan struct{}),
@@ -60,18 +57,18 @@ func (s *StageServer) runner(id int) {
 			logrus.WithField("runner id", id).Info("[Stager] runner stopped")
 			return
 		case pt := <-s.stages:
-			r := NewRunner(pt, s.store, s.ctx)
+			r := NewRunner(pt, s.store)
 			// if err := s.runWithGraph(pt); err != nil {
 			// 	logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
 			// }
 
 			switch pt.JobType {
 			case common.Apply:
-				if err := r.runWithStream(); err != nil {
+				if err := r.runWithStream(pt.Ctx); err != nil {
 					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
 				}
 			case common.Rollback:
-				if err := r.rollbackWithStream(); err != nil {
+				if err := r.rollbackWithStream(pt.Ctx); err != nil {
 					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when rollback a pistage")
 				}
 			default:
