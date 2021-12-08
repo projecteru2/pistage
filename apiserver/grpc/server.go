@@ -57,8 +57,8 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 		return nil, err
 	}
 	// Discard the output
-	ctx, _ = context.WithTimeout(ctx, time.Duration(600) * time.Second)
-	g.stager.Add(&common.PistageTask{Ctx: ctx, Pistage: pistage, JobType: common.Apply, Output: common.ClosableDiscard})
+	oneWayCtx, _ := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	g.stager.Add(&common.PistageTask{Ctx: oneWayCtx, Pistage: pistage, JobType: common.Apply, Output: common.ClosableDiscard})
 	return &proto.ApplyPistageOnewayReply{
 		WorkflowNamespace:  pistage.WorkflowNamespace,
 		WorkflowIdentifier: pistage.WorkflowIdentifier,
@@ -100,8 +100,8 @@ func (g *GRPCServer) RollbackOneway(ctx context.Context, req *proto.RollbackPist
 		return nil, err
 	}
 	// Discard the output
-	ctx, _ = context.WithTimeout(ctx, time.Duration(600)*time.Second)
-	g.stager.Add(&common.PistageTask{Pistage: pistage, JobType: common.Rollback, Output: common.ClosableDiscard})
+	oneWayCtx, _ := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	g.stager.Add(&common.PistageTask{Ctx: oneWayCtx, Pistage: pistage, JobType: common.Rollback, Output: common.ClosableDiscard})
 	return &proto.RollbackReply{
 		WorkflowNamespace:  pistage.WorkflowNamespace,
 		WorkflowIdentifier: pistage.WorkflowIdentifier,
