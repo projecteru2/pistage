@@ -22,17 +22,19 @@ type GRPCServer struct {
 	store  store.Store
 	stager *stageserver.StageServer
 
-	server *grpc.Server
+	server  *grpc.Server
+	timeout int
 }
 
-func NewGRPCServer(store store.Store, stager *stageserver.StageServer) *GRPCServer {
+func NewGRPCServer(store store.Store, stager *stageserver.StageServer, timeout int) *GRPCServer {
 	return &GRPCServer{
-		store:  store,
-		stager: stager,
+		store:   store,
+		stager:  stager,
+		timeout: timeout,
 	}
 }
 
-func (g *GRPCServer) Serve(ctx context.Context, l net.Listener, opts ...grpc.ServerOption) {
+func (g *GRPCServer) Serve(l net.Listener, opts ...grpc.ServerOption) {
 	g.server = grpc.NewServer(opts...)
 	proto.RegisterPistageServer(g.server, g)
 
@@ -57,7 +59,7 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 		return nil, err
 	}
 	// Discard the output
-	oneWayCtx, _ := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	oneWayCtx, _ := context.WithTimeout(context.Background(), time.Duration(g.timeout) * time.Second)
 	g.stager.Add(&common.PistageTask{Ctx: oneWayCtx, Pistage: pistage, JobType: common.Apply, Output: common.ClosableDiscard})
 	return &proto.ApplyPistageOnewayReply{
 		WorkflowNamespace:  pistage.WorkflowNamespace,
@@ -100,7 +102,7 @@ func (g *GRPCServer) RollbackOneway(ctx context.Context, req *proto.RollbackPist
 		return nil, err
 	}
 	// Discard the output
-	oneWayCtx, _ := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	oneWayCtx, _ := context.WithTimeout(context.Background(), time.Duration(g.timeout) * time.Second)
 	g.stager.Add(&common.PistageTask{Ctx: oneWayCtx, Pistage: pistage, JobType: common.Rollback, Output: common.ClosableDiscard})
 	return &proto.RollbackReply{
 		WorkflowNamespace:  pistage.WorkflowNamespace,
