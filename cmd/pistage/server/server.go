@@ -31,7 +31,7 @@ func StartPistage(c *cli.Context) error {
 
 	ctx, cancel := signalcontext.OnInterrupt()
 	defer cancel()
-	if err := helpers.InitExecutorProvider(config, store, ctx); err != nil {
+	if err := helpers.InitExecutorProvider(ctx, config, store); err != nil {
 		return err
 	}
 
