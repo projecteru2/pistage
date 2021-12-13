@@ -77,8 +77,7 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pi
 	// Use common.DonCloseWriter to avoid writing end of the pipe being closed by LogTracer.
 	// It's a bit tricky here...
 	r, w := io.Pipe()
-	ctx, cancel := context.WithCancel(stream.Context())
-	g.stager.Add(&common.PistageTask{Ctx: ctx, Pistage: pistage, JobType: common.Apply, Output: common.DonCloseWriter{Writer: w}})
+	g.stager.Add(&common.PistageTask{Ctx: stream.Context(), Pistage: pistage, JobType: common.Apply, Output: common.DonCloseWriter{Writer: w}})
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
@@ -88,7 +87,6 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pi
 			Log:                scanner.Text(),
 		}); err != nil {
 			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPistageStreamReply")
-			cancel()
 			return err
 		}
 	}
@@ -119,8 +117,7 @@ func (g *GRPCServer) RollbackStream(req *proto.RollbackPistageRequest, stream pr
 
 	// generate output
 	r, w := io.Pipe()
-	ctx, cancel := context.WithCancel(stream.Context())
-	g.stager.Add(&common.PistageTask{Ctx: ctx, Pistage: pistage, JobType: common.Rollback, Output: common.DonCloseWriter{Writer: w}})
+	g.stager.Add(&common.PistageTask{Ctx: stream.Context(), Pistage: pistage, JobType: common.Rollback, Output: common.DonCloseWriter{Writer: w}})
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
@@ -130,7 +127,6 @@ func (g *GRPCServer) RollbackStream(req *proto.RollbackPistageRequest, stream pr
 			Log:                scanner.Text(),
 		}); err != nil {
 			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPistageStreamReply")
-			cancel()
 			return err
 		}
 	}
