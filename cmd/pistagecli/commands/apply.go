@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"io"
 	"io/ioutil"
 
@@ -22,7 +21,7 @@ func applyOneway(c *cli.Context) error {
 		return err
 	}
 
-	reply, err := client.ApplyOneway(context.TODO(), &proto.ApplyPistageRequest{Content: string(content)})
+	reply, err := client.ApplyOneway(c.Context, &proto.ApplyPistageRequest{Content: string(content)})
 	if err != nil {
 		return err
 	}
@@ -46,7 +45,8 @@ func applyStream(c *cli.Context) error {
 		return err
 	}
 
-	stream, err := client.ApplyStream(context.TODO(), &proto.ApplyPistageRequest{Content: string(content)})
+
+	stream, err := client.ApplyStream(c.Context, &proto.ApplyPistageRequest{Content: string(content)})
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func rollbackOneway(c *cli.Context) error {
 		return err
 	}
 
-	reply, err := client.RollbackOneway(context.TODO(), &proto.RollbackPistageRequest{Content: string(content)})
+	reply, err := client.RollbackOneway(c.Context, &proto.RollbackPistageRequest{Content: string(content)})
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func rollbackStream(c *cli.Context) error {
 		return err
 	}
 
-	stream, err := client.RollbackStream(context.TODO(), &proto.RollbackPistageRequest{Content: string(content)})
+	stream, err := client.RollbackStream(c.Context, &proto.RollbackPistageRequest{Content: string(content)})
 	if err != nil {
 		return err
 	}

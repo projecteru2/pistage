@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"strings"
@@ -174,6 +175,10 @@ func EpochMillis() int64 {
 // PistageTask contains a pistage and an output tracing stream.
 // Tracing stream is used to trace this process.
 type PistageTask struct {
+
+	// todo add a context
+	Ctx context.Context
+
 	// Pistage holds the pistage to execute.
 	Pistage *Pistage
 

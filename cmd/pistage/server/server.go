@@ -29,7 +29,9 @@ func StartPistage(c *cli.Context) error {
 	}
 	defer store.Close()
 
-	if err := helpers.InitExecutorProvider(config, store); err != nil {
+	ctx, cancel := signalcontext.OnInterrupt()
+	defer cancel()
+	if err := helpers.InitExecutorProvider(ctx, config, store); err != nil {
 		return err
 	}
 
@@ -38,15 +40,12 @@ func StartPistage(c *cli.Context) error {
 		return err
 	}
 
-	ctx, cancel := signalcontext.OnInterrupt()
-	defer cancel()
-
 	s := stageserver.NewStageServer(config, store)
 	s.Start()
 	logrus.Info("[Stager] started")
 
-	g := grpc.NewGRPCServer(store, s)
-	go g.Serve(ctx, l)
+	g := grpc.NewGRPCServer(store, s, config.DefaultJobExecuteTimeout)
+	go g.Serve(l)
 	logrus.Info("[GRPCServer] started")
 
 	<-ctx.Done()

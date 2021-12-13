@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"time"
 
 	"github.com/projecteru2/pistage/apiserver/grpc/proto"
 	"github.com/projecteru2/pistage/common"
@@ -21,17 +22,19 @@ type GRPCServer struct {
 	store  store.Store
 	stager *stageserver.StageServer
 
-	server *grpc.Server
+	server  *grpc.Server
+	timeout int
 }
 
-func NewGRPCServer(store store.Store, stager *stageserver.StageServer) *GRPCServer {
+func NewGRPCServer(store store.Store, stager *stageserver.StageServer, timeout int) *GRPCServer {
 	return &GRPCServer{
-		store:  store,
-		stager: stager,
+		store:   store,
+		stager:  stager,
+		timeout: timeout,
 	}
 }
 
-func (g *GRPCServer) Serve(ctx context.Context, l net.Listener, opts ...grpc.ServerOption) {
+func (g *GRPCServer) Serve(l net.Listener, opts ...grpc.ServerOption) {
 	g.server = grpc.NewServer(opts...)
 	proto.RegisterPistageServer(g.server, g)
 
@@ -56,7 +59,8 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 		return nil, err
 	}
 	// Discard the output
-	g.stager.Add(&common.PistageTask{Pistage: pistage, JobType: common.Apply, Output: common.ClosableDiscard})
+	oneWayCtx, _ := context.WithTimeout(context.Background(), time.Duration(g.timeout) * time.Second)
+	g.stager.Add(&common.PistageTask{Ctx: oneWayCtx, Pistage: pistage, JobType: common.Apply, Output: common.ClosableDiscard})
 	return &proto.ApplyPistageOnewayReply{
 		WorkflowNamespace:  pistage.WorkflowNamespace,
 		WorkflowIdentifier: pistage.WorkflowIdentifier,
@@ -73,7 +77,7 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pi
 	// Use common.DonCloseWriter to avoid writing end of the pipe being closed by LogTracer.
 	// It's a bit tricky here...
 	r, w := io.Pipe()
-	g.stager.Add(&common.PistageTask{Pistage: pistage, JobType: common.Apply, Output: common.DonCloseWriter{Writer: w}})
+	g.stager.Add(&common.PistageTask{Ctx: stream.Context(), Pistage: pistage, JobType: common.Apply, Output: common.DonCloseWriter{Writer: w}})
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
@@ -83,8 +87,10 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pi
 			Log:                scanner.Text(),
 		}); err != nil {
 			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPistageStreamReply")
+			return err
 		}
 	}
+
 	return nil
 }
 
@@ -94,7 +100,8 @@ func (g *GRPCServer) RollbackOneway(ctx context.Context, req *proto.RollbackPist
 		return nil, err
 	}
 	// Discard the output
-	g.stager.Add(&common.PistageTask{Pistage: pistage, JobType: common.Rollback, Output: common.ClosableDiscard})
+	oneWayCtx, _ := context.WithTimeout(context.Background(), time.Duration(g.timeout) * time.Second)
+	g.stager.Add(&common.PistageTask{Ctx: oneWayCtx, Pistage: pistage, JobType: common.Rollback, Output: common.ClosableDiscard})
 	return &proto.RollbackReply{
 		WorkflowNamespace:  pistage.WorkflowNamespace,
 		WorkflowIdentifier: pistage.WorkflowIdentifier,
@@ -110,10 +117,9 @@ func (g *GRPCServer) RollbackStream(req *proto.RollbackPistageRequest, stream pr
 
 	// generate output
 	r, w := io.Pipe()
-	g.stager.Add(&common.PistageTask{Pistage: pistage, JobType: common.Rollback, Output: common.DonCloseWriter{Writer: w}})
+	g.stager.Add(&common.PistageTask{Ctx: stream.Context(), Pistage: pistage, JobType: common.Rollback, Output: common.DonCloseWriter{Writer: w}})
 
 	scanner := bufio.NewScanner(r)
-
 	for scanner.Scan() {
 		if err := stream.Send(&proto.RollbackPistageStreamReply{
 			WorkflowNamespace:  pistage.WorkflowNamespace,
@@ -121,6 +127,7 @@ func (g *GRPCServer) RollbackStream(req *proto.RollbackPistageRequest, stream pr
 			Log:                scanner.Text(),
 		}); err != nil {
 			logrus.WithError(err).Error("[GRPCServer] error sending ApplyPistageStreamReply")
+			return err
 		}
 	}
 	return nil

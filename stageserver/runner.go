@@ -17,6 +17,7 @@ import (
 // PistageRunner runs a complete workflow.
 type PistageRunner struct {
 	sync.Mutex
+	ctx context.Context
 
 	// Pistage holds the pistage to execute.
 	p *common.Pistage
@@ -43,7 +44,7 @@ func NewRunner(pt *common.PistageTask, store store.Store) *PistageRunner {
 	}
 }
 
-func (r *PistageRunner) runWithStream() error {
+func (r *PistageRunner) runWithStream(ctx context.Context) error {
 	p := r.p
 	logger := logrus.WithField("pistage", p.Name())
 
@@ -104,7 +105,7 @@ func (r *PistageRunner) runWithStream() error {
 		wg.Add(1)
 		go func(job *common.Job) {
 			defer wg.Done()
-			if err = r.runOneJob(job); err != nil {
+			if err = r.runOneJob(ctx, job); err != nil {
 				r.Lock()
 				defer r.Unlock()
 				r.run.Status = common.RunStatusFailed
@@ -118,7 +119,7 @@ func (r *PistageRunner) runWithStream() error {
 	return nil
 }
 
-func (r *PistageRunner) runOneJob(job *common.Job) error {
+func (r *PistageRunner) runOneJob(ctx context.Context, job *common.Job) error {
 	p := r.p
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "job": job.Name})
 
@@ -170,19 +171,19 @@ func (r *PistageRunner) runOneJob(job *common.Job) error {
 	}
 
 	defer func() {
-		if err := executor.Cleanup(context.TODO()); err != nil {
+		if err := executor.Cleanup(ctx); err != nil {
 			logger.WithError(err).Errorf("[Stager runOneJob] error when CLEANUP")
 			return
 		}
 	}()
 
-	if err := executor.Prepare(context.TODO()); err != nil {
+	if err := executor.Prepare(ctx); err != nil {
 		jobRun.Status = common.RunStatusFailed
 		logger.WithError(err).Errorf("[Stager runOneJob] error when PREPARE")
 		return err
 	}
 
-	if err := executor.Execute(context.TODO()); err != nil {
+	if err := executor.Execute(ctx); err != nil {
 		jobRun.Status = common.RunStatusFailed
 		logger.WithError(err).Errorf("[Stager runOneJob] error when EXECUTE")
 		return err
@@ -191,7 +192,7 @@ func (r *PistageRunner) runOneJob(job *common.Job) error {
 	return nil
 }
 
-func (r *PistageRunner) rollbackWithStream() error {
+func (r *PistageRunner) rollbackWithStream(ctx context.Context) error {
 	p := r.p
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
 
@@ -231,7 +232,7 @@ func (r *PistageRunner) rollbackWithStream() error {
 		return finishedJobRuns[i].Start > finishedJobRuns[j].Start
 	})
 
-	err = r.rollbackJobs(finishedJobRuns, id)
+	err = r.rollbackJobs(ctx, finishedJobRuns, id)
 
 	if err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when rollbackJobs")
@@ -240,12 +241,12 @@ func (r *PistageRunner) rollbackWithStream() error {
 	return nil
 }
 
-func (r *PistageRunner) rollbackJobs(jobRuns []*common.JobRun, pistageRunId string) error {
+func (r *PistageRunner) rollbackJobs(ctx context.Context, jobRuns []*common.JobRun, pistageRunId string) error {
 	p := r.p
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
 	for _, jobRun := range jobRuns {
 		if job, ok := p.Jobs[jobRun.JobName]; ok {
-			err := r.rollbackOneJob(job, pistageRunId)
+			err := r.rollbackOneJob(ctx, job, pistageRunId)
 			if err != nil {
 				logger.WithError(err).Errorf("[Stager rollback] fail to rollback")
 				return err
@@ -255,7 +256,7 @@ func (r *PistageRunner) rollbackJobs(jobRuns []*common.JobRun, pistageRunId stri
 	return nil
 }
 
-func (r *PistageRunner) rollbackOneJob(job *common.Job, pistageRunId string) error {
+func (r *PistageRunner) rollbackOneJob(ctx context.Context, job *common.Job, pistageRunId string) error {
 	p := r.p
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
 	executorProvider := executors.GetExecutorProvider(p.Executor)
@@ -270,17 +271,17 @@ func (r *PistageRunner) rollbackOneJob(job *common.Job, pistageRunId string) err
 		return err
 	}
 
-	if err = executor.Prepare(context.TODO()); err != nil {
+	if err = executor.Prepare(ctx); err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when PREPARE")
 		return err
 	}
 
-	if err = executor.Rollback(context.TODO()); err != nil {
+	if err = executor.Rollback(ctx); err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when EXECUTE")
 		return err
 	}
 
-	if err = executor.Cleanup(context.TODO()); err != nil {
+	if err = executor.Cleanup(ctx); err != nil {
 		logger.WithError(err).Errorf("[Stager rollback] error when CLEANUP")
 		return err
 	}
