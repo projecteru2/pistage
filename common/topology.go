@@ -100,7 +100,12 @@ func (t *topo) stream() (<-chan string, chan<- string, func()) {
 
 	// finishCh receives the run status of vnames.
 	// If finishCh receives a EmptyVertexName, it means at least one of the jobs failed, no need to proceed.
-	t.finishCh = make(chan string, length)
+	// Buffer length must be 1 more than number of vertices
+	// In case finishFunc is called after all jobs have finished but nothing has been read from finishCh
+	// This occurs when there are no dependencies and the first t.iterate() call schedules all jobs
+	// (or in the degenerate case where there are no jobs)
+	// Which results in the scheduling goroutine returning without ever reading from finishCh
+	t.finishCh = make(chan string, length+1)
 
 	go func() {
 		t.iterate()
