@@ -16,6 +16,7 @@ type Store interface {
 	CreatePistageRun(pistage *common.Pistage, version string) (string, error)
 	GetPistageRun(id string) (*common.Run, error)
 	UpdatePistageRun(run *common.Run) error
+	GetPistageRunsByWorkflowIdentifier(workflowIdentifier string) (pistageRuns []*common.Run, err error)
 	GetLatestPistageRunByWorkflowIdentifier(workflowIdentifier string) (pistageRun *common.Run, err error)
 
 	// JobRun

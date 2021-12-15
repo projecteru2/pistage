@@ -4,9 +4,8 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
-	"gorm.io/gorm"
-
 	"github.com/projecteru2/pistage/common"
+	"gorm.io/gorm"
 )
 
 type PistageSnapshotModel struct {
@@ -87,32 +86,16 @@ func (ms *MySQLStore) GetLatestPistageRunByWorkflowIdentifier(workflowIdentifier
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	pistageRun = &common.Run{
-		ID:                 strconv.FormatInt(pistageRunModel.ID, 10),
-		WorkflowType:       pistageRunModel.WorkflowType,
-		WorkflowIdentifier: pistageRunModel.WorkflowIdentifier,
-		Status:             common.RunStatus(pistageRunModel.RunStatus),
-		Start:              pistageRunModel.StartTime,
-		End:                pistageRunModel.EndTime,
-	}
-	return pistageRun, nil
+
+	return pistageRunModel.toDTO(), nil
 }
 
 func (ms *MySQLStore) GetPistageRun(id string) (run *common.Run, err error) {
 	var pistageRun PistageRunModel
-	err = ms.db.First(&pistageRun, id).Error
-	if err != nil {
+	if err = ms.db.First(&pistageRun, id).Error; err != nil {
 		return
 	}
-	run = &common.Run{
-		ID:                 id,
-		WorkflowType:       pistageRun.WorkflowType,
-		WorkflowIdentifier: pistageRun.WorkflowIdentifier,
-		Status:             common.RunStatus(pistageRun.RunStatus),
-		Start:              pistageRun.StartTime,
-		End:                pistageRun.EndTime,
-	}
-	return
+	return pistageRun.toDTO(), nil
 }
 
 func (ms *MySQLStore) UpdatePistageRun(run *common.Run) error {
@@ -121,4 +104,36 @@ func (ms *MySQLStore) UpdatePistageRun(run *common.Run) error {
 		"end_time":   run.End,
 		"run_status": run.Status,
 	}).Error
+}
+
+type PistageRunModels []*PistageRunModel
+
+func (ms *MySQLStore) GetPistageRunsByWorkflowIdentifier(workflowIdentifier string) (pistageRuns []*common.Run, err error) {
+	var pistageRunModels PistageRunModels
+	err = ms.db.
+		Where("workflow_identifier = ?", workflowIdentifier).Find(&pistageRunModels).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return pistageRunModels.toDTOs(), nil
+}
+
+func (m *PistageRunModel) toDTO() *common.Run {
+	return &common.Run{
+		ID:                 strconv.FormatInt(m.ID, 10),
+		WorkflowType:       m.WorkflowType,
+		WorkflowIdentifier: m.WorkflowIdentifier,
+		Status:             common.RunStatus(m.RunStatus),
+		Start:              m.StartTime,
+		End:                m.EndTime,
+	}
+}
+
+func (ms PistageRunModels) toDTOs() []*common.Run {
+	dtos := make([]*common.Run, 0, len(ms))
+	for _, m := range ms {
+		dtos = append(dtos, m.toDTO())
+	}
+	return dtos
 }

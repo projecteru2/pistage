@@ -147,3 +147,25 @@ func (g *GRPCServer) RollbackStream(req *proto.RollbackPistageRequest, stream pr
 	}
 	return nil
 }
+
+func (g *GRPCServer) GetWorkflowRuns(ctx context.Context, req *proto.GetWorkflowDetailsRequest) (*proto.GetWorkflowDetailsReply, error) {
+	workflowRuns, err := g.store.GetPistageRunsByWorkflowIdentifier(req.WorkflowIdentifier)
+	if err != nil {
+		return nil, err
+	}
+
+	runs := make([]*proto.WorkflowRun, 0, len(workflowRuns))
+	for _, workflowRun := range workflowRuns {
+		runs = append(runs, &proto.WorkflowRun{
+			StartTime:    workflowRun.Start,
+			EndTime:      workflowRun.End,
+			WorkflowType: workflowRun.WorkflowType,
+			Status:       string(workflowRun.Status),
+		})
+	}
+
+	return &proto.GetWorkflowDetailsReply{
+		WorkflowIdentifier: req.WorkflowIdentifier,
+		Runs:               runs,
+	}, nil
+}

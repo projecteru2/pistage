@@ -83,4 +83,22 @@ func (s *MySQLStoreTestSuite) TestPistageRun() {
 	s.Equal("test-type", run.WorkflowType)
 	s.Equal(common.RunStatusRunning, run.Status)
 	s.Greater(run.Start, int64(0))
+
+	lastRun, err := s.ms.GetLatestPistageRunByWorkflowIdentifier(run.WorkflowIdentifier)
+	s.NoError(err)
+	s.Equal(id, lastRun.ID)
+
+	id2, err := s.ms.CreatePistageRun(testingPistage(), "2")
+	s.NoError(err)
+	s.NotEqual("", id)
+
+	runs, err := s.ms.GetPistageRunsByWorkflowIdentifier(run.WorkflowIdentifier)
+	s.NoError(err)
+	s.Len(runs, 2)
+	s.Equal(id, runs[0].ID)
+	s.Equal(id2, runs[1].ID)
+
+	lastRun, err = s.ms.GetLatestPistageRunByWorkflowIdentifier(run.WorkflowIdentifier)
+	s.NoError(err)
+	s.Equal(id2, lastRun.ID)
 }
