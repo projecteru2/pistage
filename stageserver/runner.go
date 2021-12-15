@@ -67,7 +67,7 @@ func (r *PistageRunner) runWithStream(ctx context.Context) error {
 
 	r.run = &common.Run{
 		ID:                 runID,
-		WorkflowNamespace:  p.WorkflowNamespace,
+		WorkflowType:       p.WorkflowType,
 		WorkflowIdentifier: p.WorkflowIdentifier,
 		Start:              common.EpochMillis(),
 		Status:             common.RunStatusRunning,
@@ -124,7 +124,7 @@ func (r *PistageRunner) runOneJob(ctx context.Context, job *common.Job) error {
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "job": job.Name})
 
 	jobRun := &common.JobRun{
-		WorkflowNamespace:  p.WorkflowNamespace,
+		WorkflowType:       p.WorkflowType,
 		WorkflowIdentifier: p.WorkflowIdentifier,
 		JobName:            job.Name,
 		Status:             common.RunStatusPending,
@@ -201,9 +201,9 @@ func (r *PistageRunner) rollbackWithStream(ctx context.Context) error {
 		return err
 	}
 
-	pistageRun, err := r.store.GetLatestPistageRunByNamespaceAndFlowIdentifier(p.WorkflowNamespace, p.WorkflowIdentifier)
+	pistageRun, err := r.store.GetLatestPistageRunByWorkflowIdentifier(p.WorkflowIdentifier)
 	if err != nil {
-		logger.WithError(err).Errorf("[Stager rollback] error when GetLatestPistageRunByNamespaceAndFlowIdentifier")
+		logger.WithError(err).Errorf("[Stager rollback] error when GetLatestPistageRunByWorkflowIdentifier")
 		return err
 	}
 

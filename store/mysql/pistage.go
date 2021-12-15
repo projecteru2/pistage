@@ -13,7 +13,7 @@ type PistageSnapshotModel struct {
 	ID                 int64  `gorm:"primaryKey"`
 	CreateTime         int64  `gorm:"column:create_time;autoCreateTime:milli"`
 	UpdateTime         int64  `gorm:"column:update_time;autoUpdateTime:milli"`
-	WorkflowNamespace  string `gorm:"workflow_namespace"`
+	WorkflowType       string `gorm:"workflow_type"`
 	WorkflowIdentifier string `gorm:"workflow_identifier"`
 	ContentHash        string `gorm:"content_hash"`
 	Content            []byte `gorm:"content"`
@@ -31,7 +31,7 @@ func (ms *MySQLStore) CreatePistageSnapshot(pistage *common.Pistage) (id string,
 	}
 	var snapshot PistageSnapshotModel
 	err = ms.db.FirstOrCreate(&snapshot, PistageSnapshotModel{
-		WorkflowNamespace:  pistage.WorkflowNamespace,
+		WorkflowType:       pistage.WorkflowType,
 		WorkflowIdentifier: pistage.WorkflowIdentifier,
 		Content:            pistage.Content,
 		ContentHash:        pistage.ContentHash,
@@ -56,7 +56,7 @@ type PistageRunModel struct {
 	StartTime  int64 `gorm:"column:start_time"`
 	EndTime    int64 `gorm:"column:end_time"`
 
-	WorkflowNamespace  string `gorm:"workflow_namespace"`
+	WorkflowType       string `gorm:"workflow_type"`
 	WorkflowIdentifier string `gorm:"workflow_identifier"`
 	SnapshotVersion    int64  `gorm:"snapshot_version"`
 	RunStatus          string `gorm:"run_status"`
@@ -69,7 +69,7 @@ func (PistageRunModel) TableName() string {
 func (ms *MySQLStore) CreatePistageRun(pistage *common.Pistage, version string) (id string, err error) {
 	snapshotVersion, _ := strconv.ParseInt(version, 10, 64)
 	run := PistageRunModel{
-		WorkflowNamespace:  pistage.WorkflowNamespace,
+		WorkflowType:       pistage.WorkflowType,
 		WorkflowIdentifier: pistage.WorkflowIdentifier,
 		SnapshotVersion:    snapshotVersion,
 		RunStatus:          string(common.RunStatusPending),
@@ -80,17 +80,16 @@ func (ms *MySQLStore) CreatePistageRun(pistage *common.Pistage, version string) 
 	return
 }
 
-func (ms *MySQLStore) GetLatestPistageRunByNamespaceAndFlowIdentifier(workflowNamespace string,
-	workflowIdentifier string) (pistageRun *common.Run, err error) {
+func (ms *MySQLStore) GetLatestPistageRunByWorkflowIdentifier(workflowIdentifier string) (pistageRun *common.Run, err error) {
 	var pistageRunModel PistageRunModel
-	err = ms.db.Where("workflow_namespace = ?", workflowNamespace).
+	err = ms.db.
 		Where("workflow_identifier = ?", workflowIdentifier).Last(&pistageRunModel).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 	pistageRun = &common.Run{
 		ID:                 strconv.FormatInt(pistageRunModel.ID, 10),
-		WorkflowNamespace:  pistageRunModel.WorkflowNamespace,
+		WorkflowType:       pistageRunModel.WorkflowType,
 		WorkflowIdentifier: pistageRunModel.WorkflowIdentifier,
 		Status:             common.RunStatus(pistageRunModel.RunStatus),
 		Start:              pistageRunModel.StartTime,
@@ -107,7 +106,7 @@ func (ms *MySQLStore) GetPistageRun(id string) (run *common.Run, err error) {
 	}
 	run = &common.Run{
 		ID:                 id,
-		WorkflowNamespace:  pistageRun.WorkflowNamespace,
+		WorkflowType:       pistageRun.WorkflowType,
 		WorkflowIdentifier: pistageRun.WorkflowIdentifier,
 		Status:             common.RunStatus(pistageRun.RunStatus),
 		Start:              pistageRun.StartTime,

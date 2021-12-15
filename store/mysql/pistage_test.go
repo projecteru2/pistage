@@ -4,7 +4,7 @@ import "github.com/projecteru2/pistage/common"
 
 func testingPistage() *common.Pistage {
 	return &common.Pistage{
-		WorkflowNamespace: "test-namespace",
+		WorkflowType:       "test-type",
 		WorkflowIdentifier: "test-identifier",
 		Jobs: map[string]*common.Job{
 			"job1": {
@@ -17,7 +17,7 @@ func testingPistage() *common.Pistage {
 			},
 		},
 		Environment: map[string]string{},
-		Executor: "eru",
+		Executor:    "eru",
 	}
 }
 
@@ -47,7 +47,7 @@ func (s *MySQLStoreTestSuite) TestPistageSnapshot() {
 
 	pr, err := s.ms.GetPistageBySnapshotID(id)
 	s.NoError(err)
-	s.Equal("test-namespace", pr.WorkflowNamespace)
+	s.Equal("test-type", pr.WorkflowType)
 	_, ok := pr.Jobs["job1"]
 	s.True(ok)
 	_, ok = pr.Jobs["job2"]
@@ -55,7 +55,7 @@ func (s *MySQLStoreTestSuite) TestPistageSnapshot() {
 
 	pr, err = s.ms.GetPistageBySnapshotID(id3)
 	s.NoError(err)
-	s.Equal("test-namespace", pr.WorkflowNamespace)
+	s.Equal("test-type", pr.WorkflowType)
 	_, ok = pr.Jobs["job1"]
 	s.True(ok)
 	_, ok = pr.Jobs["job2"]
@@ -70,7 +70,7 @@ func (s *MySQLStoreTestSuite) TestPistageRun() {
 	run, err := s.ms.GetPistageRun(id)
 	s.NoError(err)
 	s.Equal(id, run.ID)
-	s.Equal("test-namespace", run.WorkflowNamespace)
+	s.Equal("test-type", run.WorkflowType)
 	s.Equal(common.RunStatusPending, run.Status)
 
 	run.Status = common.RunStatusRunning
@@ -80,7 +80,7 @@ func (s *MySQLStoreTestSuite) TestPistageRun() {
 	run, err = s.ms.GetPistageRun(id)
 	s.NoError(err)
 	s.Equal(id, run.ID)
-	s.Equal("test-namespace", run.WorkflowNamespace)
+	s.Equal("test-type", run.WorkflowType)
 	s.Equal(common.RunStatusRunning, run.Status)
 	s.Greater(run.Start, int64(0))
 }

@@ -4,22 +4,22 @@ import "github.com/projecteru2/pistage/common"
 
 func testingRun() *common.Run {
 	return &common.Run{
-		ID: "1",
-		WorkflowNamespace: "testing-namespace",
+		ID:                 "1",
+		WorkflowType:       "testing-type",
 		WorkflowIdentifier: "testing-identifier",
-		Status: common.RunStatusRunning,
-		Start: common.EpochMillis(),
+		Status:             common.RunStatusRunning,
+		Start:              common.EpochMillis(),
 	}
 }
 
 func testingJobRun(jobName string) *common.JobRun {
 	return &common.JobRun{
-		ID: "1",
-		WorkflowNamespace: "testing-namespace",
+		ID:                 "1",
+		WorkflowType:       "testing-type",
 		WorkflowIdentifier: "testing-identifier",
-		JobName: jobName,
-		Status: common.RunStatusRunning,
-		Start: common.EpochMillis(),
+		JobName:            jobName,
+		Status:             common.RunStatusRunning,
+		Start:              common.EpochMillis(),
 	}
 }
 
@@ -39,7 +39,7 @@ func (s *MySQLStoreTestSuite) TestJobRun() {
 
 	jobRun2, err := s.ms.GetJobRun(jobRun2.ID)
 	s.NoError(err)
-	s.Equal("testing-namespace", jobRun2.WorkflowNamespace)
+	s.Equal("testing-type", jobRun2.WorkflowType)
 	s.Equal(common.RunStatusFailed, jobRun2.Status)
 	s.Greater(jobRun2.End, jobRun2.Start)
 }

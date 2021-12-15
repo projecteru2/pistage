@@ -15,13 +15,13 @@ message ApplyPistageRequest {
 }
 
 message ApplyPistageOnewayReply {
-  string workflowNamespace = 1;
+  string workflowType = 1;
   string workflowIdentifier = 2;
   bool success = 3;
 }
 
 message ApplyPistageStreamReply {
-  string workflowNamespace = 1;
+  string workflowType = 1;
   string workflowIdentifier = 2;
   int64 logtype = 3;
   string log = 4;
@@ -32,13 +32,13 @@ message RollbackPistageRequest {
 }
 
 message RollbackReply {
-  string workflowNamespace = 1;
+  string workflowType = 1;
   string workflowIdentifier = 2;
   bool success = 3;
 }
 
 message RollbackPistageStreamReply {
-  string workflowNamespace = 1;
+  string workflowType = 1;
   string workflowIdentifier = 2;
   int64 logtype = 3;
   string log = 4;

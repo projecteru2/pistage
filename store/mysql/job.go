@@ -16,7 +16,7 @@ type JobRunModel struct {
 	StartTime  int64 `gorm:"column:start_time"`
 	EndTime    int64 `gorm:"column:end_time"`
 
-	WorkflowNamespace  string `gorm:"workflow_namespace"`
+	WorkflowType       string `gorm:"workflow_type"`
 	WorkflowIdentifier string `gorm:"workflow_identifier"`
 	PistageRunID       int64  `gorm:"pistage_run_id"`
 	JobName            string `gorm:"job_name"`
@@ -30,7 +30,7 @@ func (JobRunModel) TableName() string {
 func (ms *MySQLStore) CreateJobRun(run *common.Run, jobRun *common.JobRun) error {
 	pistageRunID, _ := strconv.ParseInt(run.ID, 10, 64)
 	jobRunModel := &JobRunModel{
-		WorkflowNamespace:  run.WorkflowNamespace,
+		WorkflowType:       run.WorkflowType,
 		WorkflowIdentifier: run.WorkflowIdentifier,
 		PistageRunID:       pistageRunID,
 		JobName:            jobRun.JobName,
@@ -51,7 +51,7 @@ func (ms *MySQLStore) GetJobRun(id string) (run *common.JobRun, err error) {
 	}
 	run = &common.JobRun{
 		ID:                 strconv.FormatInt(runModel.ID, 10),
-		WorkflowNamespace:  runModel.WorkflowNamespace,
+		WorkflowType:       runModel.WorkflowType,
 		WorkflowIdentifier: runModel.WorkflowIdentifier,
 		JobName:            runModel.JobName,
 		Status:             common.RunStatus(runModel.RunStatus),
@@ -79,7 +79,7 @@ func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []*
 	for _, runModel := range runModels {
 		jobRun := &common.JobRun{
 			ID:                 strconv.FormatInt(runModel.ID, 10),
-			WorkflowNamespace:  runModel.WorkflowNamespace,
+			WorkflowType:       runModel.WorkflowType,
 			WorkflowIdentifier: runModel.WorkflowIdentifier,
 			JobName:            runModel.JobName,
 			Status:             common.RunStatus(runModel.RunStatus),

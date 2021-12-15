@@ -45,7 +45,6 @@ func applyStream(c *cli.Context) error {
 		return err
 	}
 
-
 	stream, err := client.ApplyStream(c.Context, &proto.ApplyPistageRequest{Content: string(content)})
 	if err != nil {
 		return err
@@ -59,7 +58,7 @@ func applyStream(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		logrus.Infof("[%s:%s] %s", message.WorkflowNamespace, message.WorkflowIdentifier, message.Log)
+		logrus.Infof("[%s] %s", message.WorkflowIdentifier, message.Log)
 	}
 	return nil
 }
@@ -126,7 +125,7 @@ func rollbackStream(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		logrus.Infof("[%s:%s] %s", message.WorkflowNamespace, message.WorkflowIdentifier, message.Log)
+		logrus.Infof("[%s] %s", message.WorkflowIdentifier, message.Log)
 	}
 	return nil
 }

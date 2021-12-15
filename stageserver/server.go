@@ -63,11 +63,11 @@ func (s *StageServer) runner(id int) {
 			// }
 
 			switch pt.JobType {
-			case common.Apply:
+			case common.JobTypeApply:
 				if err := r.runWithStream(pt.Ctx); err != nil {
 					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
 				}
-			case common.Rollback:
+			case common.JobTypeRollback:
 				if err := r.rollbackWithStream(pt.Ctx); err != nil {
 					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when rollback a pistage")
 				}

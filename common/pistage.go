@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -16,7 +15,7 @@ import (
 var ErrorJobNotFound = errors.New("Job not found")
 
 type Pistage struct {
-	WorkflowNamespace  string `yaml:"workflow_namespace" json:"workflow_namespace"`
+	WorkflowType       string `yaml:"workflow_type" json:"workflow_type"`
 	WorkflowIdentifier string `yaml:"workflow_identifier" json:"workflow_identifier"`
 
 	Jobs        map[string]*Job   `yaml:"jobs" json:"jobs"`
@@ -35,7 +34,7 @@ func (p *Pistage) init() {
 }
 
 func (p *Pistage) Name() string {
-	return strings.Join([]string{p.WorkflowNamespace, p.WorkflowIdentifier}, ":")
+	return p.WorkflowIdentifier
 }
 
 // validate currently checks only if the dependency graph contains a cycle.
