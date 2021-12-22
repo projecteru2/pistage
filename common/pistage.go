@@ -33,10 +33,6 @@ func (p *Pistage) init() {
 	}
 }
 
-func (p *Pistage) Name() string {
-	return p.WorkflowIdentifier
-}
-
 // validate currently checks only if the dependency graph contains a cycle.
 func (p *Pistage) validate() error {
 	tp := newTopo()

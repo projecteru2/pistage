@@ -59,17 +59,17 @@ func (s *StageServer) runner(id int) {
 		case pt := <-s.stages:
 			r := NewRunner(pt, s.store)
 			// if err := s.runWithGraph(pt); err != nil {
-			// 	logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
+			// 	logrus.WithField("pistage", pt.Pistage.WorkflowIdentifier).WithError(err).Errorf("[Stager runner] error when running a pistage")
 			// }
 
 			switch pt.JobType {
 			case common.JobTypeApply:
 				if err := r.runWithStream(pt.Ctx); err != nil {
-					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when running a pistage")
+					logrus.WithField("pistage", pt.Pistage.WorkflowIdentifier).WithError(err).Errorf("[Stager runner] error when running a pistage")
 				}
 			case common.JobTypeRollback:
 				if err := r.rollbackWithStream(pt.Ctx); err != nil {
-					logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when rollback a pistage")
+					logrus.WithField("pistage", pt.Pistage.WorkflowIdentifier).WithError(err).Errorf("[Stager runner] error when rollback a pistage")
 				}
 			default:
 
@@ -78,7 +78,7 @@ func (s *StageServer) runner(id int) {
 			// We need to close the Output here, indicating the pistage is finished,
 			// all logs are written into this Output.
 			if err := pt.Output.Close(); err != nil {
-				logrus.WithField("pistage", pt.Pistage.Name).WithError(err).Errorf("[Stager runner] error when closing the output writer")
+				logrus.WithField("pistage", pt.Pistage.WorkflowIdentifier).WithError(err).Errorf("[Stager runner] error when closing the output writer")
 			}
 			runtime.GC()
 		}

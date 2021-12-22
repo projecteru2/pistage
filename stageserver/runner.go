@@ -46,7 +46,7 @@ func NewRunner(pt *common.PistageTask, store store.Store) *PistageRunner {
 
 func (r *PistageRunner) runWithStream(ctx context.Context) error {
 	p := r.p
-	logger := logrus.WithField("pistage", p.Name())
+	logger := logrus.WithField("pistage", p.WorkflowIdentifier)
 
 	if err := p.GenerateHash(); err != nil {
 		logger.WithError(err).Error("[Stager runWithStream] gen hash failed")
@@ -121,7 +121,7 @@ func (r *PistageRunner) runWithStream(ctx context.Context) error {
 
 func (r *PistageRunner) runOneJob(ctx context.Context, job *common.Job) error {
 	p := r.p
-	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "job": job.Name})
+	logger := logrus.WithFields(logrus.Fields{"pistage": p.WorkflowIdentifier, "executor": p.Executor, "job": job.Name})
 
 	jobRun := &common.JobRun{
 		WorkflowType:       p.WorkflowType,
@@ -161,7 +161,7 @@ func (r *PistageRunner) runOneJob(ctx context.Context, job *common.Job) error {
 	executorProvider := executors.GetExecutorProvider(p.Executor)
 	if executorProvider == nil {
 		logger.Errorf("[Stager runOneJob] fail to get a provider")
-		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, p.Name())
+		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, p.WorkflowIdentifier)
 	}
 
 	executor, err := executorProvider.GetJobExecutor(job, p, jobRun.LogTracer)
@@ -194,7 +194,7 @@ func (r *PistageRunner) runOneJob(ctx context.Context, job *common.Job) error {
 
 func (r *PistageRunner) rollbackWithStream(ctx context.Context) error {
 	p := r.p
-	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
+	logger := logrus.WithFields(logrus.Fields{"pistage": p.WorkflowIdentifier, "executor": p.Executor, "function": "rollback"})
 
 	if err := p.GenerateHash(); err != nil {
 		logger.WithError(err).Error("[Stager runWithStream] gen hash failed")
@@ -243,7 +243,7 @@ func (r *PistageRunner) rollbackWithStream(ctx context.Context) error {
 
 func (r *PistageRunner) rollbackJobs(ctx context.Context, jobRuns []*common.JobRun, pistageRunId string) error {
 	p := r.p
-	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
+	logger := logrus.WithFields(logrus.Fields{"pistage": p.WorkflowIdentifier, "executor": p.Executor, "function": "rollback"})
 	for _, jobRun := range jobRuns {
 		if job, ok := p.Jobs[jobRun.JobName]; ok {
 			err := r.rollbackOneJob(ctx, job, pistageRunId)
@@ -258,11 +258,11 @@ func (r *PistageRunner) rollbackJobs(ctx context.Context, jobRuns []*common.JobR
 
 func (r *PistageRunner) rollbackOneJob(ctx context.Context, job *common.Job, pistageRunId string) error {
 	p := r.p
-	logger := logrus.WithFields(logrus.Fields{"pistage": p.Name(), "executor": p.Executor, "function": "rollback"})
+	logger := logrus.WithFields(logrus.Fields{"pistage": p.WorkflowIdentifier, "executor": p.Executor, "function": "rollback"})
 	executorProvider := executors.GetExecutorProvider(p.Executor)
 	if executorProvider == nil {
 		logger.Errorf("[Stager rollbackOneJob] fail to get a provider")
-		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, p.Name())
+		return errors.WithMessage(executors.ErrorExecuteProviderNotFound, p.WorkflowIdentifier)
 	}
 
 	executor, err := executorProvider.GetJobExecutor(job, p, common.NewLogTracer(pistageRunId, r.o))
