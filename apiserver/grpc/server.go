@@ -59,11 +59,9 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, g.timeout)
-	defer cancel()
-
 	// Discard the output
-	g.stager.Add(&common.PistageTask{Ctx: ctx, Pistage: pistage, JobType: common.JobTypeApply, Output: common.ClosableDiscard})
+	oneWayCtx, _ := context.WithTimeout(context.Background(), g.timeout)
+	g.stager.Add(&common.PistageTask{Ctx: oneWayCtx, Pistage: pistage, JobType: common.JobTypeApply, Output: common.ClosableDiscard})
 
 	return &proto.ApplyPistageOnewayReply{
 		WorkflowType:       pistage.WorkflowType,
@@ -78,14 +76,11 @@ func (g *GRPCServer) ApplyStream(req *proto.ApplyPistageRequest, stream proto.Pi
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(stream.Context(), g.timeout)
-	defer cancel()
-
 	// We use a pipe here to retrieve the logs across all jobs within this pistage.
 	// Use common.DonCloseWriter to avoid writing end of the pipe being closed by LogTracer.
 	// It's a bit tricky here...
 	r, w := io.Pipe()
-	g.stager.Add(&common.PistageTask{Ctx: ctx, Pistage: pistage, JobType: common.JobTypeApply, Output: common.DonCloseWriter{Writer: w}})
+	g.stager.Add(&common.PistageTask{Ctx: stream.Context(), Pistage: pistage, JobType: common.JobTypeApply, Output: common.DonCloseWriter{Writer: w}})
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
@@ -108,11 +103,9 @@ func (g *GRPCServer) RollbackOneway(ctx context.Context, req *proto.RollbackPist
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, g.timeout)
-	defer cancel()
-
 	// Discard the output
-	g.stager.Add(&common.PistageTask{Ctx: ctx, Pistage: pistage, JobType: common.JobTypeRollback, Output: common.ClosableDiscard})
+	oneWayCtx, _ := context.WithTimeout(context.Background(), g.timeout)
+	g.stager.Add(&common.PistageTask{Ctx: oneWayCtx, Pistage: pistage, JobType: common.JobTypeRollback, Output: common.ClosableDiscard})
 
 	return &proto.RollbackReply{
 		WorkflowType:       pistage.WorkflowType,
@@ -127,12 +120,9 @@ func (g *GRPCServer) RollbackStream(req *proto.RollbackPistageRequest, stream pr
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(stream.Context(), g.timeout)
-	defer cancel()
-
 	// generate output
 	r, w := io.Pipe()
-	g.stager.Add(&common.PistageTask{Ctx: ctx, Pistage: pistage, JobType: common.JobTypeRollback, Output: common.DonCloseWriter{Writer: w}})
+	g.stager.Add(&common.PistageTask{Ctx: stream.Context(), Pistage: pistage, JobType: common.JobTypeRollback, Output: common.DonCloseWriter{Writer: w}})
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
