@@ -139,7 +139,7 @@ func (g *GRPCServer) RollbackStream(req *proto.RollbackPistageRequest, stream pr
 }
 
 func (g *GRPCServer) GetWorkflowRuns(ctx context.Context, req *proto.GetWorkflowDetailsRequest) (*proto.GetWorkflowDetailsReply, error) {
-	workflowRuns, err := g.store.GetPistageRunsByWorkflowIdentifier(req.WorkflowIdentifier)
+	workflowRuns, cnt, err := g.store.GetPaginatedPistageRunsByWorkflowIdentifier(req.WorkflowIdentifier, int(req.PageSize), int(req.PageNum))
 	if err != nil {
 		return nil, err
 	}
@@ -155,6 +155,9 @@ func (g *GRPCServer) GetWorkflowRuns(ctx context.Context, req *proto.GetWorkflow
 	}
 
 	return &proto.GetWorkflowDetailsReply{
+		PageSize:           req.PageSize,
+		PageNum:            req.PageNum,
+		TotalCount:         cnt,
 		WorkflowIdentifier: req.WorkflowIdentifier,
 		Runs:               runs,
 	}, nil

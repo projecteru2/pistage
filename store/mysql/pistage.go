@@ -4,8 +4,9 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
-	"github.com/projecteru2/pistage/common"
 	"gorm.io/gorm"
+
+	"github.com/projecteru2/pistage/common"
 )
 
 type PistageSnapshotModel struct {
@@ -108,15 +109,13 @@ func (ms *MySQLStore) UpdatePistageRun(run *common.Run) error {
 
 type PistageRunModels []*PistageRunModel
 
-func (ms *MySQLStore) GetPistageRunsByWorkflowIdentifier(workflowIdentifier string) (pistageRuns []*common.Run, err error) {
-	var pistageRunModels PistageRunModels
-	err = ms.db.
-		Where("workflow_identifier = ?", workflowIdentifier).Find(&pistageRunModels).Error
-	if err != nil {
-		return nil, err
-	}
+func (ms *MySQLStore) GetPaginatedPistageRunsByWorkflowIdentifier(workflowIdentifier string, pageSize int, pageNum int) (pistageRuns []*common.Run, cnt int64, err error) {
+	conn := ms.db.Model(&PistageRunModel{}).Where("workflow_identifier = ?", workflowIdentifier).Order("id")
 
-	return pistageRunModels.toDTOs(), nil
+	var pistageRunModels PistageRunModels
+
+	cnt, err = ms.findWithPagination(conn, &pistageRunModels, pageSize, pageNum)
+	return pistageRunModels.toDTOs(), cnt, nil
 }
 
 func (m *PistageRunModel) toDTO() *common.Run {

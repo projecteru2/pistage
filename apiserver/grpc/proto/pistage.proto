@@ -47,11 +47,16 @@ message RollbackPistageStreamReply {
 
 message GetWorkflowDetailsRequest {
   string workflowIdentifier = 1;
+  int64 pageSize = 2;
+  int64 pageNum = 3;
 }
 
 message GetWorkflowDetailsReply {
   string workflowIdentifier = 1;
-  repeated WorkflowRun runs = 2;
+  int64 pageSize = 2;
+  int64 pageNum = 3;
+  int64 totalCount = 4;
+  repeated WorkflowRun runs = 5;
 }
 
 message WorkflowRun {
