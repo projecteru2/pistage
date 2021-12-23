@@ -50,7 +50,9 @@ func (ms *MySQLStore) GetPistageBySnapshotID(id string) (*common.Pistage, error)
 }
 
 type PistageRunModel struct {
-	ID         int64 `gorm:"primaryKey"`
+	ID int64 `gorm:"primaryKey"`
+	UUIDMixin
+
 	CreateTime int64 `gorm:"column:create_time;autoCreateTime:milli"`
 	UpdateTime int64 `gorm:"column:update_time;autoUpdateTime:milli"`
 	StartTime  int64 `gorm:"column:start_time"`
@@ -64,6 +66,12 @@ type PistageRunModel struct {
 
 func (PistageRunModel) TableName() string {
 	return "pistage_run_tab"
+}
+
+func (m *PistageRunModel) BeforeCreate(db *gorm.DB) error {
+	uuid, err := GenerateUUID(db)
+	m.UUID = uuid
+	return err
 }
 
 func (ms *MySQLStore) CreatePistageRun(pistage *common.Pistage, version string) (id string, err error) {
@@ -121,6 +129,7 @@ func (ms *MySQLStore) GetPaginatedPistageRunsByWorkflowIdentifier(workflowIdenti
 func (m *PistageRunModel) toDTO() *common.Run {
 	return &common.Run{
 		ID:                 strconv.FormatInt(m.ID, 10),
+		UUID:               m.UUID,
 		WorkflowType:       m.WorkflowType,
 		WorkflowIdentifier: m.WorkflowIdentifier,
 		Status:             common.RunStatus(m.RunStatus),

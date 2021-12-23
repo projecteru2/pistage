@@ -147,6 +147,7 @@ func (g *GRPCServer) GetWorkflowRuns(ctx context.Context, req *proto.GetWorkflow
 	runs := make([]*proto.WorkflowRun, 0, len(workflowRuns))
 	for _, workflowRun := range workflowRuns {
 		runs = append(runs, &proto.WorkflowRun{
+			Uuid:         workflowRun.UUID,
 			StartTime:    workflowRun.Start,
 			EndTime:      workflowRun.End,
 			WorkflowType: workflowRun.WorkflowType,

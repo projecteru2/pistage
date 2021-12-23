@@ -87,6 +87,7 @@ var (
 
 type Run struct {
 	ID                 string    `json:"id"`
+	UUID               string    `json:"uuid"`
 	WorkflowType       string    `json:"workflow_type"`
 	WorkflowIdentifier string    `json:"workflow_identifier"`
 	Status             RunStatus `json:"status"`
@@ -96,6 +97,7 @@ type Run struct {
 
 type JobRun struct {
 	ID                 string             `json:"id"`
+	UUID               string             `json:"uuid"`
 	WorkflowType       string             `json:"workflow_type"`
 	WorkflowIdentifier string             `json:"workflow_identifier"`
 	JobName            string             `json:"job_name"`

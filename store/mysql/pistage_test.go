@@ -65,11 +65,12 @@ func (s *MySQLStoreTestSuite) TestPistageSnapshot() {
 func (s *MySQLStoreTestSuite) TestPistageRun() {
 	id, err := s.ms.CreatePistageRun(testingPistage(), "1")
 	s.NoError(err)
-	s.NotEqual("", id)
+	s.NotEmpty(id)
 
 	run, err := s.ms.GetPistageRun(id)
 	s.NoError(err)
 	s.Equal(id, run.ID)
+	s.NotEmpty(run.UUID)
 	s.Equal("test-type", run.WorkflowType)
 	s.Equal(common.RunStatusPending, run.Status)
 
@@ -80,6 +81,7 @@ func (s *MySQLStoreTestSuite) TestPistageRun() {
 	run, err = s.ms.GetPistageRun(id)
 	s.NoError(err)
 	s.Equal(id, run.ID)
+	s.NotEmpty(run.UUID)
 	s.Equal("test-type", run.WorkflowType)
 	s.Equal(common.RunStatusRunning, run.Status)
 	s.Greater(run.Start, int64(0))
@@ -90,7 +92,7 @@ func (s *MySQLStoreTestSuite) TestPistageRun() {
 
 	id2, err := s.ms.CreatePistageRun(testingPistage(), "2")
 	s.NoError(err)
-	s.NotEqual("", id)
+	s.NotEmpty(id2)
 
 	runs, cnt, err := s.ms.GetPaginatedPistageRunsByWorkflowIdentifier(run.WorkflowIdentifier, 20, 1)
 	s.NoError(err)

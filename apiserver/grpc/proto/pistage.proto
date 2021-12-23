@@ -60,8 +60,9 @@ message GetWorkflowRunsReply {
 }
 
 message WorkflowRun {
-  int64 startTime = 1;
-  int64 endTime = 2;
-  string workflowType = 3;
-  string status = 4;
+  string uuid = 1;
+  int64 startTime = 2;
+  int64 endTime = 3;
+  string workflowType = 4;
+  string status = 5;
 }
