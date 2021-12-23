@@ -57,7 +57,7 @@ func (s *StageServer) runner(id int) {
 			logrus.WithField("runner id", id).Info("[Stager] runner stopped")
 			return
 		case pt := <-s.stages:
-			r := NewRunner(pt, s.store)
+			r := NewRunner(pt, s.store, s.config.DefaultJobExecuteTimeoutSecs)
 			// if err := s.runWithGraph(pt); err != nil {
 			// 	logrus.WithField("pistage", pt.Pistage.WorkflowIdentifier).WithError(err).Errorf("[Stager runner] error when running a pistage")
 			// }

@@ -5,6 +5,7 @@ import (
 	"io"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -33,18 +34,24 @@ type PistageRunner struct {
 
 	jobRuns map[string]*common.JobRun
 	run     *common.Run
+
+	timeout time.Duration
 }
 
-func NewRunner(pt *common.PistageTask, store store.Store) *PistageRunner {
+func NewRunner(pt *common.PistageTask, store store.Store, timeoutSecs int) *PistageRunner {
 	return &PistageRunner{
 		p:       pt.Pistage,
 		store:   store,
 		o:       pt.Output,
 		jobRuns: map[string]*common.JobRun{},
+		timeout: time.Duration(timeoutSecs) * time.Second,
 	}
 }
 
 func (r *PistageRunner) runWithStream(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
 	p := r.p
 	logger := logrus.WithField("pistage", p.WorkflowIdentifier)
 
@@ -193,6 +200,9 @@ func (r *PistageRunner) runOneJob(ctx context.Context, job *common.Job) error {
 }
 
 func (r *PistageRunner) rollbackWithStream(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, r.timeout)
+	defer cancel()
+
 	p := r.p
 	logger := logrus.WithFields(logrus.Fields{"pistage": p.WorkflowIdentifier, "executor": p.Executor, "function": "rollback"})
 
