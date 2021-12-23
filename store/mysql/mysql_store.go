@@ -58,11 +58,12 @@ func (ms *MySQLStore) GetRegisteredKhoriumStep(ctx context.Context, name string)
 	return ms.khoriumManager.GetKhoriumStep(ctx, name)
 }
 
-func (ms *MySQLStore) findWithPagination(conn *gorm.DB, dst interface{}, pageSize int, pageNum int) (cnt int64, err error) {
-	// The more straightforward way is to use conn.Count(&cnt)
-	// But, this doesn't work if conn contains a .Distinct(table.*) statement because COUNT(DISTINCT table.*) is invalid SQL
-	// Workaround is to use the conditions in conn as a subquery
-	if err := conn.Session(&gorm.Session{NewDB: true}).Table("(?) as foo", conn).Count(&cnt).Error; err != nil {
+// findWithPagination calls conn.Find(dst) while also returning the total number of results in the query
+// This method will not work if conn contains a .Distinct(table.*) statement because COUNT(DISTINCT table.*) is invalid SQL
+// If this is required, a workaround is to instead use:
+//     conn.Session(&gorm.Session{NewDB: true}).Table("(?) as foo", conn).Count(&cnt).Error
+func (s *MySQLStore) findWithPagination(conn *gorm.DB, dst interface{}, pageSize int, pageNum int) (cnt int64, err error) {
+	if err := conn.Count(&cnt).Error; err != nil {
 		return 0, err
 	}
 

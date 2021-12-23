@@ -8,7 +8,7 @@ service Pistage {
   rpc ApplyStream(ApplyPistageRequest) returns (stream ApplyPistageStreamReply) {};
   rpc RollbackOneway(RollbackPistageRequest) returns (RollbackReply) {};
   rpc RollbackStream(RollbackPistageRequest) returns (stream RollbackPistageStreamReply) {};
-  rpc GetWorkflowRuns(GetWorkflowDetailsRequest) returns (GetWorkflowDetailsReply) {};
+  rpc GetWorkflowRuns(GetWorkflowRunsRequest) returns (GetWorkflowRunsReply) {};
 }
 
 message ApplyPistageRequest {
@@ -45,13 +45,13 @@ message RollbackPistageStreamReply {
   string log = 4;
 }
 
-message GetWorkflowDetailsRequest {
+message GetWorkflowRunsRequest {
   string workflowIdentifier = 1;
   int64 pageSize = 2;
   int64 pageNum = 3;
 }
 
-message GetWorkflowDetailsReply {
+message GetWorkflowRunsReply {
   string workflowIdentifier = 1;
   int64 pageSize = 2;
   int64 pageNum = 3;

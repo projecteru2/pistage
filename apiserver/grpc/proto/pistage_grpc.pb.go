@@ -22,7 +22,7 @@ type PistageClient interface {
 	ApplyStream(ctx context.Context, in *ApplyPistageRequest, opts ...grpc.CallOption) (Pistage_ApplyStreamClient, error)
 	RollbackOneway(ctx context.Context, in *RollbackPistageRequest, opts ...grpc.CallOption) (*RollbackReply, error)
 	RollbackStream(ctx context.Context, in *RollbackPistageRequest, opts ...grpc.CallOption) (Pistage_RollbackStreamClient, error)
-	GetWorkflowRuns(ctx context.Context, in *GetWorkflowDetailsRequest, opts ...grpc.CallOption) (*GetWorkflowDetailsReply, error)
+	GetWorkflowRuns(ctx context.Context, in *GetWorkflowRunsRequest, opts ...grpc.CallOption) (*GetWorkflowRunsReply, error)
 }
 
 type pistageClient struct {
@@ -115,8 +115,8 @@ func (x *pistageRollbackStreamClient) Recv() (*RollbackPistageStreamReply, error
 	return m, nil
 }
 
-func (c *pistageClient) GetWorkflowRuns(ctx context.Context, in *GetWorkflowDetailsRequest, opts ...grpc.CallOption) (*GetWorkflowDetailsReply, error) {
-	out := new(GetWorkflowDetailsReply)
+func (c *pistageClient) GetWorkflowRuns(ctx context.Context, in *GetWorkflowRunsRequest, opts ...grpc.CallOption) (*GetWorkflowRunsReply, error) {
+	out := new(GetWorkflowRunsReply)
 	err := c.cc.Invoke(ctx, "/proto.Pistage/GetWorkflowRuns", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ type PistageServer interface {
 	ApplyStream(*ApplyPistageRequest, Pistage_ApplyStreamServer) error
 	RollbackOneway(context.Context, *RollbackPistageRequest) (*RollbackReply, error)
 	RollbackStream(*RollbackPistageRequest, Pistage_RollbackStreamServer) error
-	GetWorkflowRuns(context.Context, *GetWorkflowDetailsRequest) (*GetWorkflowDetailsReply, error)
+	GetWorkflowRuns(context.Context, *GetWorkflowRunsRequest) (*GetWorkflowRunsReply, error)
 	mustEmbedUnimplementedPistageServer()
 }
 
@@ -152,7 +152,7 @@ func (UnimplementedPistageServer) RollbackOneway(context.Context, *RollbackPista
 func (UnimplementedPistageServer) RollbackStream(*RollbackPistageRequest, Pistage_RollbackStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method RollbackStream not implemented")
 }
-func (UnimplementedPistageServer) GetWorkflowRuns(context.Context, *GetWorkflowDetailsRequest) (*GetWorkflowDetailsReply, error) {
+func (UnimplementedPistageServer) GetWorkflowRuns(context.Context, *GetWorkflowRunsRequest) (*GetWorkflowRunsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWorkflowRuns not implemented")
 }
 func (UnimplementedPistageServer) mustEmbedUnimplementedPistageServer() {}
@@ -247,7 +247,7 @@ func (x *pistageRollbackStreamServer) Send(m *RollbackPistageStreamReply) error 
 }
 
 func _Pistage_GetWorkflowRuns_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetWorkflowDetailsRequest)
+	in := new(GetWorkflowRunsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ func _Pistage_GetWorkflowRuns_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: "/proto.Pistage/GetWorkflowRuns",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PistageServer).GetWorkflowRuns(ctx, req.(*GetWorkflowDetailsRequest))
+		return srv.(PistageServer).GetWorkflowRuns(ctx, req.(*GetWorkflowRunsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
