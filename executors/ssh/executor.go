@@ -110,7 +110,7 @@ func (s *SSHJobExecutor) Prepare(ctx context.Context) error {
 
 // prepareJobRuntime creates a working dir for this job.
 func (s *SSHJobExecutor) prepareJobRuntime(ctx context.Context) error {
-	digest, err := helpers.Sha1HexDigest(fmt.Sprintf("%s:%s", s.pistage.Name, s.job.Name))
+	digest, err := helpers.Sha1HexDigest(fmt.Sprintf("%s:%s", s.pistage.WorkflowIdentifier, s.job.Name))
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func (s *SSHJobExecutor) executeKhoriumStep(ctx context.Context, step *common.St
 
 	// Prepare KhoriumStep environment.
 	// Make the proper working dir, and copy the files to this dir.
-	digest, err := helpers.Sha1HexDigest(fmt.Sprintf("%s:%s", s.pistage.Name, s.job.Name))
+	digest, err := helpers.Sha1HexDigest(fmt.Sprintf("%s:%s", s.pistage.WorkflowIdentifier, s.job.Name))
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@ import "github.com/projecteru2/pistage/common"
 
 func testingPistage() *common.Pistage {
 	return &common.Pistage{
-		WorkflowNamespace: "test-namespace",
+		WorkflowType:       "test-type",
 		WorkflowIdentifier: "test-identifier",
 		Jobs: map[string]*common.Job{
 			"job1": {
@@ -17,7 +17,7 @@ func testingPistage() *common.Pistage {
 			},
 		},
 		Environment: map[string]string{},
-		Executor: "eru",
+		Executor:    "eru",
 	}
 }
 
@@ -47,7 +47,7 @@ func (s *MySQLStoreTestSuite) TestPistageSnapshot() {
 
 	pr, err := s.ms.GetPistageBySnapshotID(id)
 	s.NoError(err)
-	s.Equal("test-namespace", pr.WorkflowNamespace)
+	s.Equal("test-type", pr.WorkflowType)
 	_, ok := pr.Jobs["job1"]
 	s.True(ok)
 	_, ok = pr.Jobs["job2"]
@@ -55,7 +55,7 @@ func (s *MySQLStoreTestSuite) TestPistageSnapshot() {
 
 	pr, err = s.ms.GetPistageBySnapshotID(id3)
 	s.NoError(err)
-	s.Equal("test-namespace", pr.WorkflowNamespace)
+	s.Equal("test-type", pr.WorkflowType)
 	_, ok = pr.Jobs["job1"]
 	s.True(ok)
 	_, ok = pr.Jobs["job2"]
@@ -65,12 +65,13 @@ func (s *MySQLStoreTestSuite) TestPistageSnapshot() {
 func (s *MySQLStoreTestSuite) TestPistageRun() {
 	id, err := s.ms.CreatePistageRun(testingPistage(), "1")
 	s.NoError(err)
-	s.NotEqual("", id)
+	s.NotEmpty(id)
 
 	run, err := s.ms.GetPistageRun(id)
 	s.NoError(err)
 	s.Equal(id, run.ID)
-	s.Equal("test-namespace", run.WorkflowNamespace)
+	s.NotEmpty(run.UUID)
+	s.Equal("test-type", run.WorkflowType)
 	s.Equal(common.RunStatusPending, run.Status)
 
 	run.Status = common.RunStatusRunning
@@ -80,7 +81,33 @@ func (s *MySQLStoreTestSuite) TestPistageRun() {
 	run, err = s.ms.GetPistageRun(id)
 	s.NoError(err)
 	s.Equal(id, run.ID)
-	s.Equal("test-namespace", run.WorkflowNamespace)
+	s.NotEmpty(run.UUID)
+	s.Equal("test-type", run.WorkflowType)
 	s.Equal(common.RunStatusRunning, run.Status)
 	s.Greater(run.Start, int64(0))
+
+	lastRun, err := s.ms.GetLatestPistageRunByWorkflowIdentifier(run.WorkflowIdentifier)
+	s.NoError(err)
+	s.Equal(id, lastRun.ID)
+
+	id2, err := s.ms.CreatePistageRun(testingPistage(), "2")
+	s.NoError(err)
+	s.NotEmpty(id2)
+
+	runs, cnt, err := s.ms.GetPaginatedPistageRunsByWorkflowIdentifier(run.WorkflowIdentifier, 20, 1)
+	s.NoError(err)
+	s.EqualValues(cnt, 2)
+	s.Len(runs, 2)
+	s.Equal(id, runs[0].ID)
+	s.Equal(id2, runs[1].ID)
+
+	runs, cnt, err = s.ms.GetPaginatedPistageRunsByWorkflowIdentifier(run.WorkflowIdentifier, 1, 2)
+	s.NoError(err)
+	s.EqualValues(cnt, 2)
+	s.Len(runs, 1)
+	s.Equal(id2, runs[0].ID)
+
+	lastRun, err = s.ms.GetLatestPistageRunByWorkflowIdentifier(run.WorkflowIdentifier)
+	s.NoError(err)
+	s.Equal(id2, lastRun.ID)
 }

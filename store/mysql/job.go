@@ -10,13 +10,15 @@ import (
 )
 
 type JobRunModel struct {
-	ID         int64 `gorm:"primaryKey"`
+	ID int64 `gorm:"primaryKey"`
+	UUIDMixin
+
 	CreateTime int64 `gorm:"column:create_time;autoCreateTime:milli"`
 	UpdateTime int64 `gorm:"column:update_time;autoUpdateTime:milli"`
 	StartTime  int64 `gorm:"column:start_time"`
 	EndTime    int64 `gorm:"column:end_time"`
 
-	WorkflowNamespace  string `gorm:"workflow_namespace"`
+	WorkflowType       string `gorm:"workflow_type"`
 	WorkflowIdentifier string `gorm:"workflow_identifier"`
 	PistageRunID       int64  `gorm:"pistage_run_id"`
 	JobName            string `gorm:"job_name"`
@@ -27,10 +29,16 @@ func (JobRunModel) TableName() string {
 	return "job_run_tab"
 }
 
+func (m *JobRunModel) BeforeCreate(db *gorm.DB) error {
+	uuid, err := GenerateUUID(db)
+	m.UUID = uuid
+	return err
+}
+
 func (ms *MySQLStore) CreateJobRun(run *common.Run, jobRun *common.JobRun) error {
 	pistageRunID, _ := strconv.ParseInt(run.ID, 10, 64)
 	jobRunModel := &JobRunModel{
-		WorkflowNamespace:  run.WorkflowNamespace,
+		WorkflowType:       run.WorkflowType,
 		WorkflowIdentifier: run.WorkflowIdentifier,
 		PistageRunID:       pistageRunID,
 		JobName:            jobRun.JobName,
@@ -41,6 +49,7 @@ func (ms *MySQLStore) CreateJobRun(run *common.Run, jobRun *common.JobRun) error
 		return err
 	}
 	jobRun.ID = strconv.FormatInt(jobRunModel.ID, 10)
+	jobRun.UUID = jobRunModel.UUID
 	return nil
 }
 
@@ -49,16 +58,7 @@ func (ms *MySQLStore) GetJobRun(id string) (run *common.JobRun, err error) {
 	if err = ms.db.First(&runModel, id).Error; err != nil {
 		return
 	}
-	run = &common.JobRun{
-		ID:                 strconv.FormatInt(runModel.ID, 10),
-		WorkflowNamespace:  runModel.WorkflowNamespace,
-		WorkflowIdentifier: runModel.WorkflowIdentifier,
-		JobName:            runModel.JobName,
-		Status:             common.RunStatus(runModel.RunStatus),
-		Start:              runModel.StartTime,
-		End:                runModel.EndTime,
-	}
-	return
+	return runModel.toDTO(), nil
 }
 
 func (ms *MySQLStore) UpdateJobRun(jobRun *common.JobRun) error {
@@ -77,16 +77,20 @@ func (ms *MySQLStore) GetJobRunsByPistageRunId(pistageRunId string) (jobRuns []*
 	}
 	result := make([]*common.JobRun, 0)
 	for _, runModel := range runModels {
-		jobRun := &common.JobRun{
-			ID:                 strconv.FormatInt(runModel.ID, 10),
-			WorkflowNamespace:  runModel.WorkflowNamespace,
-			WorkflowIdentifier: runModel.WorkflowIdentifier,
-			JobName:            runModel.JobName,
-			Status:             common.RunStatus(runModel.RunStatus),
-			Start:              runModel.StartTime,
-			End:                runModel.EndTime,
-		}
-		result = append(result, jobRun)
+		result = append(result, runModel.toDTO())
 	}
 	return result, nil
+}
+
+func (m *JobRunModel) toDTO() *common.JobRun {
+	return &common.JobRun{
+		ID:                 strconv.FormatInt(m.ID, 10),
+		UUID:               m.UUID,
+		WorkflowType:       m.WorkflowType,
+		WorkflowIdentifier: m.WorkflowIdentifier,
+		JobName:            m.JobName,
+		Status:             common.RunStatus(m.RunStatus),
+		Start:              m.StartTime,
+		End:                m.EndTime,
+	}
 }

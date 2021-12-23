@@ -87,7 +87,8 @@ var (
 
 type Run struct {
 	ID                 string    `json:"id"`
-	WorkflowNamespace  string    `json:"workflow_namespace"`
+	UUID               string    `json:"uuid"`
+	WorkflowType       string    `json:"workflow_type"`
 	WorkflowIdentifier string    `json:"workflow_identifier"`
 	Status             RunStatus `json:"status"`
 	Start              int64     `json:"start"`
@@ -96,7 +97,8 @@ type Run struct {
 
 type JobRun struct {
 	ID                 string             `json:"id"`
-	WorkflowNamespace  string             `json:"workflow_namespace"`
+	UUID               string             `json:"uuid"`
+	WorkflowType       string             `json:"workflow_type"`
 	WorkflowIdentifier string             `json:"workflow_identifier"`
 	JobName            string             `json:"job_name"`
 	Status             RunStatus          `json:"status"`

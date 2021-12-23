@@ -21,11 +21,9 @@ func main() {
 		Version: version.VERSION,
 		Commands: []*cli.Command{
 			{
-				Name:  "server",
-				Usage: "Run Pistage server",
-				Action: func(c *cli.Context) error {
-					return server.StartPistage(c)
-				},
+				Name:   "server",
+				Usage:  "Run Pistage server",
+				Action: server.StartPistage,
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "log-level",

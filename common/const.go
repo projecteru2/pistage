@@ -1,6 +1,6 @@
 package common
 
 const (
-	Apply    = "apply"
-	Rollback = "rollback"
+	JobTypeApply    = "apply"
+	JobTypeRollback = "rollback"
 )

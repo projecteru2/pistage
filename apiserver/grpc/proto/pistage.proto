@@ -8,6 +8,7 @@ service Pistage {
   rpc ApplyStream(ApplyPistageRequest) returns (stream ApplyPistageStreamReply) {};
   rpc RollbackOneway(RollbackPistageRequest) returns (RollbackReply) {};
   rpc RollbackStream(RollbackPistageRequest) returns (stream RollbackPistageStreamReply) {};
+  rpc GetWorkflowRuns(GetWorkflowRunsRequest) returns (GetWorkflowRunsReply) {};
 }
 
 message ApplyPistageRequest {
@@ -15,13 +16,13 @@ message ApplyPistageRequest {
 }
 
 message ApplyPistageOnewayReply {
-  string workflowNamespace = 1;
+  string workflowType = 1;
   string workflowIdentifier = 2;
   bool success = 3;
 }
 
 message ApplyPistageStreamReply {
-  string workflowNamespace = 1;
+  string workflowType = 1;
   string workflowIdentifier = 2;
   int64 logtype = 3;
   string log = 4;
@@ -32,14 +33,36 @@ message RollbackPistageRequest {
 }
 
 message RollbackReply {
-  string workflowNamespace = 1;
+  string workflowType = 1;
   string workflowIdentifier = 2;
   bool success = 3;
 }
 
 message RollbackPistageStreamReply {
-  string workflowNamespace = 1;
+  string workflowType = 1;
   string workflowIdentifier = 2;
   int64 logtype = 3;
   string log = 4;
+}
+
+message GetWorkflowRunsRequest {
+  string workflowIdentifier = 1;
+  int64 pageSize = 2;
+  int64 pageNum = 3;
+}
+
+message GetWorkflowRunsReply {
+  string workflowIdentifier = 1;
+  int64 pageSize = 2;
+  int64 pageNum = 3;
+  int64 totalCount = 4;
+  repeated WorkflowRun runs = 5;
+}
+
+message WorkflowRun {
+  string uuid = 1;
+  int64 startTime = 2;
+  int64 endTime = 3;
+  string workflowType = 4;
+  string status = 5;
 }

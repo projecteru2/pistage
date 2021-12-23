@@ -9,7 +9,7 @@ import (
 func TestGenerateHash(t *testing.T) {
 	a := assert.New(t)
 	p1 := &Pistage{
-		WorkflowNamespace: "n",
+		WorkflowType:       "t",
 		WorkflowIdentifier: "i",
 		Jobs: map[string]*Job{
 			"job1": {},
@@ -18,7 +18,7 @@ func TestGenerateHash(t *testing.T) {
 		},
 	}
 	p2 := &Pistage{
-		WorkflowNamespace: "n",
+		WorkflowType:       "t",
 		WorkflowIdentifier: "i",
 		Jobs: map[string]*Job{
 			"job3": {},

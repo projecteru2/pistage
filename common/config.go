@@ -13,8 +13,8 @@ type Config struct {
 	StageServerWorkers int      `yaml:"stage_server_workers" default:"10"`
 	JobExecutors       []string `yaml:"job_executors" default:"[eru]"`
 
-	DefaultJobExecutor       string `yaml:"default_job_executor" default:"eru"`
-	DefaultJobExecuteTimeout int    `yaml:"default_job_execute_timeout" default:"1200"`
+	DefaultJobExecutor           string `yaml:"default_job_executor" default:"eru"`
+	DefaultJobExecuteTimeoutSecs int    `yaml:"default_job_execute_timeout" default:"1200"`
 
 	Eru     EruConfig           `yaml:"eru"`
 	SSH     SSHConfig           `yaml:"ssh"`
@@ -76,8 +76,8 @@ func (c *Config) initDefault() {
 	if c.DefaultJobExecutor == "" {
 		c.DefaultJobExecutor = "eru"
 	}
-	if c.DefaultJobExecuteTimeout == 0 {
-		c.DefaultJobExecuteTimeout = 1200
+	if c.DefaultJobExecuteTimeoutSecs == 0 {
+		c.DefaultJobExecuteTimeoutSecs = 1200
 	}
 	if c.Eru.DefaultWorkingDir == "" {
 		c.Eru.DefaultWorkingDir = "/pistage"
