@@ -44,7 +44,7 @@ func StartPistage(c *cli.Context) error {
 	s.Start()
 	logrus.Info("[Stager] started")
 
-	g := grpc.NewGRPCServer(store, s, config.DefaultJobExecuteTimeoutSecs)
+	g := grpc.NewGRPCServer(store, s)
 	go g.Serve(l)
 	logrus.Info("[GRPCServer] started")
 

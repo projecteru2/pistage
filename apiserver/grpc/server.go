@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 	"net"
-	"time"
 
 	"github.com/projecteru2/pistage/apiserver/grpc/proto"
 	"github.com/projecteru2/pistage/common"
@@ -23,14 +22,12 @@ type GRPCServer struct {
 	stager *stageserver.StageServer
 
 	server  *grpc.Server
-	timeout time.Duration
 }
 
-func NewGRPCServer(store store.Store, stager *stageserver.StageServer, timeoutSecs int) *GRPCServer {
+func NewGRPCServer(store store.Store, stager *stageserver.StageServer) *GRPCServer {
 	return &GRPCServer{
 		store:   store,
 		stager:  stager,
-		timeout: time.Duration(timeoutSecs) * time.Second,
 	}
 }
 
@@ -60,8 +57,7 @@ func (g *GRPCServer) ApplyOneway(ctx context.Context, req *proto.ApplyPistageReq
 	}
 
 	// Discard the output
-	oneWayCtx, _ := context.WithTimeout(context.Background(), g.timeout)
-	g.stager.Add(&common.PistageTask{Ctx: oneWayCtx, Pistage: pistage, JobType: common.JobTypeApply, Output: common.ClosableDiscard})
+	g.stager.Add(&common.PistageTask{Ctx: context.Background(), Pistage: pistage, JobType: common.JobTypeApply, Output: common.ClosableDiscard})
 
 	return &proto.ApplyPistageOnewayReply{
 		WorkflowType:       pistage.WorkflowType,
@@ -104,8 +100,7 @@ func (g *GRPCServer) RollbackOneway(ctx context.Context, req *proto.RollbackPist
 	}
 
 	// Discard the output
-	oneWayCtx, _ := context.WithTimeout(context.Background(), g.timeout)
-	g.stager.Add(&common.PistageTask{Ctx: oneWayCtx, Pistage: pistage, JobType: common.JobTypeRollback, Output: common.ClosableDiscard})
+	g.stager.Add(&common.PistageTask{Ctx: context.Background(), Pistage: pistage, JobType: common.JobTypeRollback, Output: common.ClosableDiscard})
 
 	return &proto.RollbackReply{
 		WorkflowType:       pistage.WorkflowType,
