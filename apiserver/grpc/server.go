@@ -21,13 +21,13 @@ type GRPCServer struct {
 	store  store.Store
 	stager *stageserver.StageServer
 
-	server  *grpc.Server
+	server *grpc.Server
 }
 
 func NewGRPCServer(store store.Store, stager *stageserver.StageServer) *GRPCServer {
 	return &GRPCServer{
-		store:   store,
-		stager:  stager,
+		store:  store,
+		stager: stager,
 	}
 }
 

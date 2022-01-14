@@ -108,9 +108,11 @@ func (e *EruJobExecutor) prepareJobRuntime(ctx context.Context) error {
 // This will be set to the whole running context within the workload.
 func (e *EruJobExecutor) defaultEnvironmentVariables() map[string]string {
 	return map[string]string{
-		"PISTAGE_WORKING_DIR": e.workingDir,
-		"PISTAGE_JOB_NAME":    e.job.Name,
-		"PISTAGE_DEPENDS_ON":  strings.Join(e.job.DependsOn, ","),
+		"PISTAGE_WORKING_DIR":         e.workingDir,
+		"PISTAGE_JOB_NAME":            e.job.Name,
+		"PISTAGE_DEPENDS_ON":          strings.Join(e.job.DependsOn, ","),
+		"PISTAGE_WORKFLOW_IDENTIFIER": e.pistage.WorkflowIdentifier,
+		"PISTAGE_WORKFLOW_TYPE":       e.pistage.WorkflowType,
 	}
 }
 
