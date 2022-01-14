@@ -111,6 +111,7 @@ func (e *EruJobExecutor) defaultEnvironmentVariables() map[string]string {
 		"PISTAGE_WORKING_DIR": e.workingDir,
 		"PISTAGE_JOB_NAME":    e.job.Name,
 		"PISTAGE_DEPENDS_ON":  strings.Join(e.job.DependsOn, ","),
+		"PISTAGE_WORKFLOW_IDENTIFIER": e.pistage.WorkflowIdentifier,
 	}
 }
 
