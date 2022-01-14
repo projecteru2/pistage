@@ -67,7 +67,7 @@ func (e *EruFileCollector) Collect(ctx context.Context, identifier string, files
 	defer e.mutex.Unlock()
 
 	var (
-		err   error
+		err error
 	)
 
 	// output of the job

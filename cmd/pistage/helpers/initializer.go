@@ -12,7 +12,7 @@ import (
 )
 
 // initEru initializes eru executor provider.
-func initEru( ctx context.Context, config *common.Config, store store.Store) error {
+func initEru(ctx context.Context, config *common.Config, store store.Store) error {
 	eruProvider, err := eru.NewEruJobExecutorProvider(config, store, ctx)
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ var initializers = map[string]func(context.Context, *common.Config, store.Store)
 }
 
 // InitExecutorProvider initiates and registers executor providers.
-func InitExecutorProvider( ctx context.Context, config *common.Config, store store.Store) error {
+func InitExecutorProvider(ctx context.Context, config *common.Config, store store.Store) error {
 	for _, provider := range config.JobExecutors {
 		f, ok := initializers[provider]
 		if !ok {
