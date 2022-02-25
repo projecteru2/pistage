@@ -7,7 +7,7 @@ require (
 	github.com/flosch/pongo2/v4 v4.0.2
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.0
-	github.com/projecteru2/core v0.0.0-20210930102957-b5e724ae7e9b
+	github.com/projecteru2/core v0.0.0-20220119112919-d145b4c9640a
 	github.com/sethvargo/go-signalcontext v0.1.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
